@@ -299,7 +299,7 @@ a:hover { text-decoration: underline; }
   border-radius: 3px;
   overflow: hidden;
 }
-.segment-bar-cheaper { background: #4ecdc4; }
+.segment-bar-cheaper { background: #60a0f0; }
 .segment-bar-expensive { background: #f06060; }
 .segment-stats {
   width: 200px;
@@ -390,7 +390,79 @@ a:hover { text-decoration: underline; }
 .delta-positive { color: #f06060; }
 .delta-negative { color: #60d060; }
 
-/* === File List === */
+/* === Analysis Header === */
+.analysis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.analysis-header h2 { margin-bottom: 0; }
+
+/* === Mode Toggle === */
+.mode-toggle {
+  display: flex;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.mode-btn {
+  padding: 0.4rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mode-btn:hover { color: var(--text2); }
+.mode-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* === File Tiles === */
+.file-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.file-tile {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.file-tile:hover {
+  border-color: var(--border2);
+  background: var(--bg4);
+}
+.file-tile.selected {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.file-tile-date {
+  font-family: var(--font-head);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+.file-tile.selected .file-tile-date { color: var(--accent); }
+.file-tile-name {
+  font-size: 0.7rem;
+  color: var(--text3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* === File List (legacy compat) === */
 .file-list {
   margin-bottom: 1rem;
 }

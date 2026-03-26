@@ -48,9 +48,66 @@ var BRANCH_CONFIG = {
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
   }
 
+  // Try multiple possible column names, return first non-empty match
+  function findCol(row, keys) {
+    for (var i = 0; i < keys.length; i++) {
+      var val = row[keys[i]];
+      if (val !== undefined && val !== null && String(val).trim() !== '' && String(val).trim() !== '-') {
+        return String(val);
+      }
+    }
+    // Second pass: accept any value that exists (even '-' means the column exists)
+    for (var j = 0; j < keys.length; j++) {
+      var val2 = row[keys[j]];
+      if (val2 !== undefined && val2 !== null && String(val2).trim() !== '') {
+        return String(val2);
+      }
+    }
+    return '-';
+  }
+
+  // Resolve the actual column key from a row once
+  function resolveKey(row, candidates) {
+    for (var i = 0; i < candidates.length; i++) {
+      if (row.hasOwnProperty(candidates[i])) return candidates[i];
+    }
+    return null;
+  }
+
   function analyzeFile(rows, branch) {
     var config = BRANCH_CONFIG[branch];
     if (!config) throw new Error('Unknown branch: ' + branch);
+
+    // Discover actual column names from first row
+    var sampleRow = rows[0] || {};
+    var allCols = Object.keys(sampleRow);
+
+    // Find name column: look for columns containing key substrings
+    var nameKeys = [];
+    var producerKeys = [];
+    allCols.forEach(function (col) {
+      var lc = col.toLowerCase();
+      if (lc.indexOf('nazwa') !== -1 || lc.indexOf('name') !== -1 || lc.indexOf('produkt') !== -1 || lc.indexOf('product') !== -1 || lc.indexOf('towar') !== -1 || lc.indexOf('opis') !== -1) {
+        nameKeys.push(col);
+      }
+      if (lc.indexOf('producent') !== -1 || lc.indexOf('producer') !== -1 || lc.indexOf('marka') !== -1 || lc.indexOf('brand') !== -1 || lc.indexOf('dostawca') !== -1) {
+        producerKeys.push(col);
+      }
+    });
+    // Log all columns for debugging
+    console.log('[parser] Branch:', branch, '| Columns:', allCols);
+    console.log('[parser] Name keys found:', nameKeys, '| Producer keys found:', producerKeys);
+
+    // Fallback: if no name column found, use all columns as candidates
+    // (the first non-config column is likely the product name)
+    if (nameKeys.length === 0) {
+      console.warn('Could not find product name column. Using all columns as fallback.');
+      nameKeys = allCols.slice();
+    }
+    if (producerKeys.length === 0) {
+      // Don't fallback producer to everything — just leave empty
+      console.warn('Could not find producer column.');
+    }
 
     var total = rows.length;
     var withComp = 0;
@@ -119,8 +176,8 @@ var BRANCH_CONFIG = {
         // Top expensive (positive diff = we are more expensive)
         if (pct > 0) {
           topExpensiveList.push({
-            name: row['Nazwa produktu'] || row['Nazwa'] || row['Product'] || '-',
-            producer: row['Producent'] || row['Producer'] || '-',
+            name: findCol(row, nameKeys),
+            producer: findCol(row, producerKeys),
             pct: pct,
           });
         }
@@ -128,8 +185,8 @@ var BRANCH_CONFIG = {
         // Top cheapest (negative diff = we are cheaper)
         if (pct < 0) {
           topCheapestList.push({
-            name: row['Nazwa produktu'] || row['Nazwa'] || row['Product'] || '-',
-            producer: row['Producent'] || row['Producer'] || '-',
+            name: findCol(row, nameKeys),
+            producer: findCol(row, producerKeys),
             pct: pct,
           });
         }

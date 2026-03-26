@@ -3,15 +3,65 @@
 (function () {
   'use strict';
 
-  var selectedFiles = {};  // { fileId: { id, name, date } }
-  var lastBranch = null;
+  var currentMode = {};    // { sewera: 'single', dobromir: 'single' }
+  var cachedFiles = {};    // { sewera: [...], dobromir: [...] }
+  var selectedFileId = {}; // { sewera: 'id', dobromir: 'id' }
 
   // Called by nav.js when branch switches
   window.onBranchSwitch = function (branch) {
-    selectedFiles = {};
     destroyAllCharts();
     loadFileList(branch);
   };
+
+  // Initialize mode toggle buttons on DOM ready
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.mode-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var branch = btn.dataset.branch;
+        var mode = btn.dataset.mode;
+        setMode(branch, mode);
+      });
+    });
+  });
+
+  function setMode(branch, mode) {
+    currentMode[branch] = mode;
+
+    // Update toggle UI
+    var header = document.getElementById('page-' + branch);
+    if (header) {
+      header.querySelectorAll('.mode-btn').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+    }
+
+    destroyAllCharts();
+
+    if (mode === 'all') {
+      // Hide tile selection, run all-files trend
+      var container = getFileListContainer(branch);
+      if (container) container.style.display = 'none';
+      runAllFilesAnalysis(branch);
+    } else {
+      // Show tiles
+      var container = getFileListContainer(branch);
+      if (container) container.style.display = '';
+      // If a file was selected, re-render it; otherwise show empty state
+      if (selectedFileId[branch] && cachedFiles[branch]) {
+        var file = cachedFiles[branch].find(function (f) { return f.id === selectedFileId[branch]; });
+        if (file) {
+          runSingleFileAnalysis(branch, file);
+          return;
+        }
+      }
+      var resultArea = getResultArea(branch);
+      if (resultArea) resultArea.innerHTML = '<div class="empty-state">Select a file above to run analysis.</div>';
+    }
+  }
+
+  function getMode(branch) {
+    return currentMode[branch] || 'single';
+  }
 
   async function loadFileList(branch) {
     var config = BRANCH_CONFIG[branch];
@@ -20,6 +70,17 @@
     var resultArea = getResultArea(branch);
     if (!container) return;
 
+    // Reset mode to single on branch switch
+    currentMode[branch] = 'single';
+    selectedFileId[branch] = null;
+    var header = document.getElementById('page-' + branch);
+    if (header) {
+      header.querySelectorAll('.mode-btn').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.mode === 'single');
+      });
+    }
+    container.style.display = '';
+
     if (!isSignedIn()) {
       container.innerHTML = '<div class="empty-state">Connect your Google Drive account to load files.</div>';
       if (resultArea) resultArea.innerHTML = '';
@@ -27,7 +88,7 @@
     }
 
     container.innerHTML = '<div class="loading-state"><span class="spinner"></span> Loading files...</div>';
-    if (resultArea) resultArea.innerHTML = '<div class="empty-state">Select one or more files above to run analysis.</div>';
+    if (resultArea) resultArea.innerHTML = '<div class="empty-state">Select a file above to run analysis.</div>';
 
     try {
       var files = await listFiles(config.folderId);
@@ -35,81 +96,120 @@
         container.innerHTML = '<div class="empty-state">No files found in Drive folder. Drop output files into the correct folder to begin.</div>';
         return;
       }
-      renderFileList(container, files, branch);
+      // Enrich with dates
+      files.forEach(function (f) {
+        f.date = extractDate(f.name) || '';
+      });
+      // Sort oldest to newest by date in filename
+      files.sort(function (a, b) {
+        var da = a.date ? dateSortKey(a.date) : '';
+        var db = b.date ? dateSortKey(b.date) : '';
+        return da.localeCompare(db);
+      });
+      cachedFiles[branch] = files;
+      renderFileTiles(container, files, branch);
     } catch (err) {
       container.innerHTML = '<div class="error-msg">' + escHtml(err.message) + '</div>';
     }
   }
 
-  function renderFileList(container, files, branch) {
-    var html = '<div class="file-list">';
+  function renderFileTiles(container, files, branch) {
+    var html = '<div class="file-tiles">';
     files.forEach(function (f) {
-      var date = extractDate(f.name) || '';
+      var dateDisplay = f.date || 'No date';
+      var selected = selectedFileId[branch] === f.id ? ' selected' : '';
       html +=
-        '<label class="file-item">' +
-          '<input type="checkbox" data-id="' + f.id + '" data-name="' + escHtml(f.name) + '" data-date="' + date + '">' +
-          '<span class="file-name">' + escHtml(f.name) + '</span>' +
-          '<span class="file-date">' + date + '</span>' +
-        '</label>';
+        '<div class="file-tile' + selected + '" data-id="' + f.id + '" data-branch="' + branch + '">' +
+          '<div class="file-tile-date">' + escHtml(dateDisplay) + '</div>' +
+          '<div class="file-tile-name" title="' + escHtml(f.name) + '">' + escHtml(f.name) + '</div>' +
+        '</div>';
     });
     html += '</div>';
-    html += '<button class="btn btn-accent" id="btn-analyze-' + branch + '" disabled>Analyze selected</button>';
     container.innerHTML = html;
 
-    // Wire up checkboxes
-    container.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
-      cb.addEventListener('change', function () {
-        if (cb.checked) {
-          selectedFiles[cb.dataset.id] = { id: cb.dataset.id, name: cb.dataset.name, date: cb.dataset.date };
-        } else {
-          delete selectedFiles[cb.dataset.id];
+    // Wire up tile clicks
+    container.querySelectorAll('.file-tile').forEach(function (tile) {
+      tile.addEventListener('click', function () {
+        var fileId = tile.dataset.id;
+        var b = tile.dataset.branch;
+
+        // Deselect if clicking same tile
+        if (selectedFileId[b] === fileId) {
+          selectedFileId[b] = null;
+          tile.classList.remove('selected');
+          destroyAllCharts();
+          var resultArea = getResultArea(b);
+          if (resultArea) resultArea.innerHTML = '<div class="empty-state">Select a file above to run analysis.</div>';
+          return;
         }
-        var btn = document.getElementById('btn-analyze-' + branch);
-        if (btn) btn.disabled = Object.keys(selectedFiles).length === 0;
+
+        // Select this tile
+        selectedFileId[b] = fileId;
+        container.querySelectorAll('.file-tile').forEach(function (t) { t.classList.remove('selected'); });
+        tile.classList.add('selected');
+
+        var file = cachedFiles[b].find(function (f) { return f.id === fileId; });
+        if (file) runSingleFileAnalysis(b, file);
       });
     });
+  }
 
-    // Wire up analyze button
-    var btn = document.getElementById('btn-analyze-' + branch);
-    if (btn) {
-      btn.addEventListener('click', function () {
-        runAnalysis(branch);
-      });
+  async function runSingleFileAnalysis(branch, file) {
+    var resultArea = getResultArea(branch);
+    if (!resultArea) return;
+
+    destroyAllCharts();
+    resultArea.innerHTML = '<div class="loading-state"><span class="spinner"></span> Analyzing ' + escHtml(file.name) + '...</div>';
+
+    try {
+      var buf = await downloadFile(file.id);
+      var rows = parseXlsx(buf);
+      var result = analyzeFile(rows, branch);
+      result.date = file.date;
+      result.filename = file.name;
+      renderSingleFile(resultArea, result, branch);
+    } catch (err) {
+      resultArea.innerHTML = '<div class="error-msg">Analysis error: ' + escHtml(err.message) + '</div>';
     }
   }
 
-  async function runAnalysis(branch) {
+  async function runAllFilesAnalysis(branch) {
     var resultArea = getResultArea(branch);
     if (!resultArea) return;
-    var fileList = Object.values(selectedFiles);
-    if (fileList.length === 0) return;
+    var files = cachedFiles[branch];
 
-    resultArea.innerHTML = '<div class="loading-state"><span class="spinner"></span> Analyzing...</div>';
+    if (!files || files.length === 0) {
+      resultArea.innerHTML = '<div class="empty-state">No files available for trend analysis.</div>';
+      return;
+    }
+
+    if (files.length < 2) {
+      resultArea.innerHTML = '<div class="empty-state">Need at least 2 files for trend analysis. Only 1 file found.</div>';
+      return;
+    }
+
+    destroyAllCharts();
+    resultArea.innerHTML = '<div class="loading-state"><span class="spinner"></span> Analyzing ' + files.length + ' files...</div>';
 
     try {
-      // Sort by date
-      fileList.sort(function (a, b) {
+      // Sort by date chronologically
+      var sorted = files.slice().sort(function (a, b) {
         var da = a.date ? dateSortKey(a.date) : '';
         var db = b.date ? dateSortKey(b.date) : '';
         return da.localeCompare(db);
       });
 
-      // Download and analyze all files
       var analyses = [];
-      for (var i = 0; i < fileList.length; i++) {
-        var buf = await downloadFile(fileList[i].id);
+      for (var i = 0; i < sorted.length; i++) {
+        var buf = await downloadFile(sorted[i].id);
         var rows = parseXlsx(buf);
         var result = analyzeFile(rows, branch);
-        result.date = fileList[i].date;
-        result.filename = fileList[i].name;
+        result.date = sorted[i].date;
+        result.filename = sorted[i].name;
         analyses.push(result);
       }
 
-      if (analyses.length === 1) {
-        renderSingleFile(resultArea, analyses[0], branch);
-      } else {
-        renderTrendView(resultArea, analyses, branch);
-      }
+      renderTrendView(resultArea, analyses, branch);
     } catch (err) {
       resultArea.innerHTML = '<div class="error-msg">Analysis error: ' + escHtml(err.message) + '</div>';
     }
@@ -134,10 +234,15 @@
     html += kpiCard('No competitor data', data.noComp, '');
     html += '</div>';
 
-    // Charts row
+    // Charts row (IDs namespaced by branch)
+    var covId = 'chart-coverage-' + branch;
+    var distId = 'chart-dist-' + branch;
+    var expListId = 'product-list-expensive-' + branch;
+    var cheapListId = 'product-list-cheapest-' + branch;
+
     html += '<div class="chart-row">';
-    html += '<div class="chart-card"><h2>Competitor Coverage</h2><div style="height:220px"><canvas id="chart-coverage"></canvas></div></div>';
-    html += '<div class="chart-card"><h2>Price Distribution</h2><div style="height:220px"><canvas id="chart-dist"></canvas></div></div>';
+    html += '<div class="chart-card"><h2>Competitor Coverage</h2><div style="height:220px"><canvas id="' + covId + '"></canvas></div></div>';
+    html += '<div class="chart-card"><h2>Price Distribution</h2><div style="height:220px"><canvas id="' + distId + '"></canvas></div></div>';
     html += '</div>';
 
     // Segment breakdown
@@ -151,15 +256,15 @@
     html += '<button class="product-tab active" data-list="expensive">' + config.label + ' najdro\u017Csza</button>';
     html += '<button class="product-tab" data-list="cheapest">' + config.label + ' najta\u0144sza</button>';
     html += '</div>';
-    html += '<div id="product-list-expensive">' + renderProductTable(data.topExpensive) + '</div>';
-    html += '<div id="product-list-cheapest" style="display:none">' + renderProductTable(data.topCheapest) + '</div>';
+    html += '<div id="' + expListId + '">' + renderProductTable(data.topExpensive) + '</div>';
+    html += '<div id="' + cheapListId + '" style="display:none">' + renderProductTable(data.topCheapest) + '</div>';
     html += '</div>';
 
     container.innerHTML = html;
 
     // Create charts
-    createCoverageChart('chart-coverage', data.compCoverage);
-    createDistributionChart('chart-dist', data.dist);
+    createCoverageChart(covId, data.compCoverage);
+    createDistributionChart(distId, data.dist);
 
     // Product tab switching
     container.querySelectorAll('.product-tab').forEach(function (tab) {
@@ -167,8 +272,8 @@
         container.querySelectorAll('.product-tab').forEach(function (t) { t.classList.remove('active'); });
         tab.classList.add('active');
         var list = tab.dataset.list;
-        document.getElementById('product-list-expensive').style.display = list === 'expensive' ? '' : 'none';
-        document.getElementById('product-list-cheapest').style.display = list === 'cheapest' ? '' : 'none';
+        document.getElementById(expListId).style.display = list === 'expensive' ? '' : 'none';
+        document.getElementById(cheapListId).style.display = list === 'cheapest' ? '' : 'none';
       });
     });
   }
@@ -180,11 +285,11 @@
 
   function renderSegmentBars(segments) {
     if (segments.length === 0) return '<div class="empty-state">No segment data</div>';
-    var maxTotal = segments[0].total;
     var html = '';
     segments.forEach(function (s) {
-      var cheaperW = maxTotal > 0 ? (s.cheaper / maxTotal * 100) : 0;
-      var expensiveW = maxTotal > 0 ? (s.expensive / maxTotal * 100) : 0;
+      var total = s.cheaper + s.expensive;
+      var cheaperW = total > 0 ? (s.cheaper / total * 100) : 0;
+      var expensiveW = total > 0 ? (s.expensive / total * 100) : 0;
       html += '<div class="segment-row">' +
         '<span class="segment-name" title="' + escHtml(s.name) + '">' + escHtml(s.name) + '</span>' +
         '<div class="segment-bar-wrap">' +
@@ -192,7 +297,7 @@
           '<div class="segment-bar-expensive" style="width:' + expensiveW + '%"></div>' +
         '</div>' +
         '<span class="segment-stats">' +
-          s.cheaper + ' cheaper &middot; ' + s.expensive + ' expensive &middot; med ' + s.median.toFixed(1) + '%' +
+          s.cheaper + ' cheaper/equal &middot; ' + s.expensive + ' expensive &middot; med ' + s.median.toFixed(1) + '%' +
         '</span>' +
       '</div>';
     });
@@ -239,9 +344,12 @@
       return a.withComp > 0 ? (a.cheaper / a.withComp * 100) : 0;
     });
 
+    var trendMedId = 'chart-trend-median-' + branch;
+    var trendCheapId = 'chart-trend-cheapest-' + branch;
+
     html += '<div class="chart-row">';
-    html += '<div class="chart-card"><h2>Median % Over Time</h2><div style="height:250px"><canvas id="chart-trend-median"></canvas></div></div>';
-    html += '<div class="chart-card"><h2>% Cheapest Over Time</h2><div style="height:250px"><canvas id="chart-trend-cheapest"></canvas></div></div>';
+    html += '<div class="chart-card"><h2>Median % Over Time</h2><div style="height:250px"><canvas id="' + trendMedId + '"></canvas></div></div>';
+    html += '<div class="chart-card"><h2>% Cheapest Over Time</h2><div style="height:250px"><canvas id="' + trendCheapId + '"></canvas></div></div>';
     html += '</div>';
 
     // Segment trend table
@@ -251,12 +359,11 @@
 
     container.innerHTML = html;
 
-    createLineChart('chart-trend-median', dates, medians);
-    createLineChart('chart-trend-cheapest', dates, pctCheapers);
+    createLineChart(trendMedId, dates, medians);
+    createLineChart(trendCheapId, dates, pctCheapers);
   }
 
   function renderSegmentTrend(first, last) {
-    // Build map of segments
     var segMap = {};
     first.segments.forEach(function (s) { segMap[s.name] = { first: s.median, last: 0 }; });
     last.segments.forEach(function (s) {

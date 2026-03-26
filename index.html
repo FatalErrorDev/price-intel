@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 
   <!-- Chart.js (CDN for dev) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.7/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
   <!-- SheetJS (vendored) -->
   <script src="lib/xlsx.full.min.js"></script>
@@ -103,24 +103,32 @@
 
   <!-- ===== SEWERA ANALYSIS PAGE ===== -->
   <section class="page-section" id="page-sewera">
-    <div class="card" style="margin-bottom:1.5rem">
+    <div class="analysis-header">
       <h2>Sewera Analysis</h2>
-      <div id="file-list-sewera">
-        <div class="empty-state">Connect your Google Drive account to load files.</div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" data-mode="single" data-branch="sewera">Single File</button>
+        <button class="mode-btn" data-mode="all" data-branch="sewera">All Files Trend</button>
       </div>
     </div>
+    <div id="file-list-sewera">
+      <div class="empty-state">Connect your Google Drive account to load files.</div>
+    </div>
     <div id="result-sewera">
-      <div class="empty-state">Select one or more files above to run analysis.</div>
+      <div class="empty-state">Select a file above to run analysis.</div>
     </div>
   </section>
 
   <!-- ===== DOBROMIR ANALYSIS PAGE ===== -->
   <section class="page-section" id="page-dobromir">
-    <div class="card" style="margin-bottom:1.5rem">
+    <div class="analysis-header">
       <h2>Dobromir Analysis</h2>
-      <div id="file-list-dobromir">
-        <div class="empty-state">Connect your Google Drive account to load files.</div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" data-mode="single" data-branch="dobromir">Single File</button>
+        <button class="mode-btn" data-mode="all" data-branch="dobromir">All Files Trend</button>
       </div>
+    </div>
+    <div id="file-list-dobromir">
+      <div class="empty-state">Connect your Google Drive account to load files.</div>
     </div>
     <div id="result-dobromir">
       <div class="empty-state">Select one or more files above to run analysis.</div>
