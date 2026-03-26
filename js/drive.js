@@ -1,0 +1,156 @@
+/* === Google Drive API === */
+
+var FOLDERS = {
+  input:     '1kh24IJPG_h_R3Jrp83oUZWi3M4RxkAQI',
+  monday:    '1nuNs04PMRNeBMbCh5vwKo5687y-3guXe',
+  tuesday:   '1uMeu0lqp5jQ9AqVLjGMtSKg9DH4MkH6f',
+  wednesday: '1QRo0XUVn4Z51HYEwRs6K6FjyKDfimvXa',
+  thursday:  '1vNxfwN1m7ygt5iBYyi021yInA6SG-9Pc',
+  friday:    '1dl9bOAJv-4iYtl7JbX72smmVBcPC_Yq8',
+  saturday:  '1qo7wck8u8Tp8AyzQBS2uirL9sLlTlOOY',
+  sunday:    '1zgvnJvMz2q2yDAdtao4WhNEVGGJuUZOB',
+  sewera:    '1Ni30IrmlkN8tEF2IHkWjP6DOJ4JH36-T',
+  dobromir:  '1rt5sG17r_fC0PT1JhGWwTp2wvzskAedu',
+};
+
+(function () {
+  'use strict';
+
+  var tokenClient = null;
+  var accessToken = null;
+
+  function getClientId() {
+    var meta = document.querySelector('meta[name="google-client-id"]');
+    return meta ? meta.content : '';
+  }
+
+  function initDrive() {
+    var clientId = getClientId();
+    if (!clientId || clientId === 'YOUR_CLIENT_ID_HERE') {
+      console.warn('Google Client ID not configured. Set it in the <meta name="google-client-id"> tag.');
+      return;
+    }
+
+    /* global google */
+    if (typeof google === 'undefined' || !google.accounts) {
+      console.warn('Google Identity Services library not loaded.');
+      return;
+    }
+
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: function (response) {
+        if (response.error) {
+          console.error('OAuth error:', response.error);
+          return;
+        }
+        accessToken = response.access_token;
+        updateAuthUI(true);
+      },
+    });
+  }
+
+  function signIn() {
+    if (!tokenClient) {
+      initDrive();
+    }
+    if (tokenClient) {
+      tokenClient.requestAccessToken();
+    } else {
+      updateAuthUI(false, 'Google OAuth not configured');
+    }
+  }
+
+  function isSignedIn() {
+    return !!accessToken;
+  }
+
+  function requireAuth() {
+    if (!isSignedIn()) {
+      throw new Error('Not authenticated. Please connect Google Drive first.');
+    }
+  }
+
+  function updateAuthUI(connected, errorMsg) {
+    var bar = document.getElementById('auth-bar');
+    if (!bar) return;
+    if (connected) {
+      bar.innerHTML = '<span class="status-ok">Connected to Drive \u2713</span>';
+    } else if (errorMsg) {
+      bar.innerHTML = '<span style="color:#f06060">' + errorMsg + '</span>';
+    } else {
+      bar.innerHTML = '<button onclick="signIn()">Connect Google Drive</button>';
+    }
+  }
+
+  async function uploadFile(file, folderId) {
+    requireAuth();
+    var metadata = {
+      name: file.name,
+      parents: [folderId],
+    };
+    var form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', file);
+
+    var resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken },
+      body: form,
+    });
+    if (!resp.ok) {
+      var err = await resp.text();
+      throw new Error('Upload failed: ' + err);
+    }
+    return resp.json();
+  }
+
+  async function listFiles(folderId) {
+    requireAuth();
+    var q = encodeURIComponent("'" + folderId + "' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false");
+    var url = 'https://www.googleapis.com/drive/v3/files?q=' + q + '&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime,webViewLink)';
+    var resp = await fetch(url, {
+      headers: { Authorization: 'Bearer ' + accessToken },
+    });
+    if (!resp.ok) {
+      var err = await resp.text();
+      throw new Error('List files failed: ' + err);
+    }
+    var data = await resp.json();
+    return data.files || [];
+  }
+
+  async function downloadFile(fileId) {
+    requireAuth();
+    var resp = await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
+      headers: { Authorization: 'Bearer ' + accessToken },
+    });
+    if (!resp.ok) {
+      var err = await resp.text();
+      throw new Error('Download failed: ' + err);
+    }
+    return resp.arrayBuffer();
+  }
+
+  // Initialize on DOM ready
+  document.addEventListener('DOMContentLoaded', function () {
+    updateAuthUI(false);
+    // Wait for GSI library to load
+    var waitForGSI = setInterval(function () {
+      if (typeof google !== 'undefined' && google.accounts) {
+        clearInterval(waitForGSI);
+        initDrive();
+      }
+    }, 200);
+    // Stop waiting after 10s
+    setTimeout(function () { clearInterval(waitForGSI); }, 10000);
+  });
+
+  // Expose globals
+  window.signIn = signIn;
+  window.isSignedIn = isSignedIn;
+  window.uploadFile = uploadFile;
+  window.listFiles = listFiles;
+  window.downloadFile = downloadFile;
+})();

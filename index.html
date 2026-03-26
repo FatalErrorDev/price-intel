@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google-client-id" content="73506200897-s26ivej07i439ucihg5vaeeknu4khe2k.apps.googleusercontent.com">
+  <title>Sewera // Price Intel</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js (CDN for dev) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.7/chart.umd.min.js"></script>
+
+  <!-- SheetJS (vendored) -->
+  <script src="lib/xlsx.full.min.js"></script>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/scraping.css">
+  <link rel="stylesheet" href="css/sewera.css">
+  <link rel="stylesheet" href="css/dobromir.css">
+</head>
+<body class="page-scraping">
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-logo">SEWERA <span class="sep">//</span> PRICE INTEL</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-page="scraping">Scraping</button>
+      <button class="nav-tab" data-page="analysis">Analysis</button>
+    </div>
+    <div class="branch-toggle">
+      <button class="branch-btn active" data-branch="sewera">Sewera</button>
+      <button class="branch-btn" data-branch="dobromir">Dobromir</button>
+    </div>
+  </nav>
+
+  <!-- Auth Bar -->
+  <div class="auth-bar" id="auth-bar">
+    <button onclick="signIn()">Connect Google Drive</button>
+  </div>
+
+  <!-- ===== SCRAPING PAGE ===== -->
+  <section class="page-section active" id="page-scraping">
+    <div class="scraping-grid">
+
+      <!-- Run Now Card -->
+      <div class="card">
+        <h2>Run Now</h2>
+        <p style="color:var(--text2);font-size:0.8rem;margin-bottom:1rem">
+          Upload an input file to start scraping immediately.
+        </p>
+        <div class="drop-zone" id="run-now-drop">
+          Drop .xlsx file here or click to browse
+        </div>
+        <div class="error-msg"></div>
+        <div id="run-now-chip"></div>
+        <div style="margin-top:1rem">
+          <button class="btn btn-accent" id="btn-run-now" disabled>
+            Upload &amp; Start Scraping
+          </button>
+        </div>
+        <div id="run-now-result"></div>
+      </div>
+
+      <!-- Schedule Card -->
+      <div class="card">
+        <h2>Schedule</h2>
+        <p style="color:var(--text2);font-size:0.8rem;margin-bottom:1rem">
+          Upload a file to be used on a specific day.
+        </p>
+        <div class="drop-zone" id="schedule-drop">
+          Drop .xlsx file here or click to browse
+        </div>
+        <div class="error-msg"></div>
+        <div id="schedule-chip"></div>
+        <div class="day-picker">
+          <button class="day-btn" data-day="monday">Mon</button>
+          <button class="day-btn" data-day="tuesday">Tue</button>
+          <button class="day-btn" data-day="wednesday">Wed</button>
+          <button class="day-btn" data-day="thursday">Thu</button>
+          <button class="day-btn" data-day="friday">Fri</button>
+          <button class="day-btn" data-day="saturday">Sat</button>
+          <button class="day-btn" data-day="sunday">Sun</button>
+        </div>
+        <div id="schedule-warning"></div>
+        <div style="margin-top:0.5rem">
+          <button class="btn btn-accent" id="btn-schedule" disabled>
+            <span id="schedule-btn-label">Schedule upload</span>
+          </button>
+        </div>
+        <div id="schedule-result"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== SEWERA ANALYSIS PAGE ===== -->
+  <section class="page-section" id="page-sewera">
+    <div class="card" style="margin-bottom:1.5rem">
+      <h2>Sewera Analysis</h2>
+      <div id="file-list-sewera">
+        <div class="empty-state">Connect your Google Drive account to load files.</div>
+      </div>
+    </div>
+    <div id="result-sewera">
+      <div class="empty-state">Select one or more files above to run analysis.</div>
+    </div>
+  </section>
+
+  <!-- ===== DOBROMIR ANALYSIS PAGE ===== -->
+  <section class="page-section" id="page-dobromir">
+    <div class="card" style="margin-bottom:1.5rem">
+      <h2>Dobromir Analysis</h2>
+      <div id="file-list-dobromir">
+        <div class="empty-state">Connect your Google Drive account to load files.</div>
+      </div>
+    </div>
+    <div id="result-dobromir">
+      <div class="empty-state">Select one or more files above to run analysis.</div>
+    </div>
+  </section>
+
+  <!-- JS (order matters: drive → parser → charts → nav → page logic) -->
+  <script src="js/drive.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/scraping.js"></script>
+  <script src="js/analysis.js"></script>
+
+</body>
+</html>
