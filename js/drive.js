@@ -39,7 +39,7 @@ var FOLDERS = {
 
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: clientId,
-      scope: 'https://www.googleapis.com/auth/drive.file',
+      scope: 'https://www.googleapis.com/auth/drive',
       callback: function (response) {
         if (response.error) {
           console.error('OAuth error:', response.error);
