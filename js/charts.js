@@ -279,6 +279,91 @@
     return chartInstances[canvasId];
   }
 
+  // Generic multi-series line chart — accepts [{name, values}]
+  function createSeriesLineChart(canvasId, dates, seriesData) {
+    destroyChart(canvasId);
+    var ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    var d = getChartDefaults();
+
+    var seriesColors = [
+      '#b349da', '#31ac87', '#eee360', '#6150f8',
+      '#2b9ebf', '#aa3e3e', '#17c844', '#b57622'
+    ];
+
+    var labels = dates.map(function (dt) {
+      var day = dateToDayName(dt);
+      return day ? [dt, day] : [dt];
+    });
+
+    var datasets = seriesData.map(function (s, i) {
+      var color = seriesColors[i % seriesColors.length];
+      return {
+        label: s.name,
+        data: s.values,
+        borderColor: color,
+        backgroundColor: color + '18',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: color,
+        pointBorderColor: color,
+        borderWidth: 2,
+      };
+    });
+
+    var sumPlugin = {
+      id: 'sumTotals',
+      afterDraw: function (chart) {
+        var ctx2 = chart.ctx;
+        var xScale = chart.scales.x;
+        var yScale = chart.scales.y;
+        ctx2.save();
+        ctx2.font = '11px ' + d.fontMono;
+        ctx2.fillStyle = d.text3;
+        ctx2.textAlign = 'center';
+        var numPoints = seriesData.length > 0 ? seriesData[0].values.length : 0;
+        for (var i = 0; i < numPoints; i++) {
+          var visibleSum = 0;
+          chart.data.datasets.forEach(function (ds, idx) {
+            if (chart.isDatasetVisible(idx)) {
+              visibleSum += (ds.data[i] || 0);
+            }
+          });
+          var x = xScale.getPixelForValue(i);
+          var y = yScale.top - 6;
+          ctx2.fillText(visibleSum, x, y);
+        }
+        ctx2.restore();
+      }
+    };
+
+    chartInstances[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            ticks: { color: d.text3, font: { family: d.fontMono, size: 10 } },
+            grid: { color: d.gridColor },
+          },
+          y: {
+            ticks: { color: d.text3, font: { family: d.fontMono, size: 10 } },
+            grid: { color: d.gridColor },
+            beginAtZero: true,
+          },
+        },
+      },
+      plugins: [sumPlugin],
+    });
+
+    return chartInstances[canvasId];
+  }
+
   // Expose globals
   window.destroyChart = destroyChart;
   window.destroyAllCharts = destroyAllCharts;
@@ -286,4 +371,9 @@
   window.createCoverageChart = createCoverageChart;
   window.createLineChart = createLineChart;
   window.createCompCoverageLineChart = createCompCoverageLineChart;
+  window.createSeriesLineChart = createSeriesLineChart;
+  window.SERIES_COLORS = [
+    '#b349da', '#31ac87', '#eee360', '#6150f8',
+    '#2b9ebf', '#aa3e3e', '#17c844', '#b57622'
+  ];
 })();
