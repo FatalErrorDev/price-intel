@@ -37,6 +37,9 @@ var FOLDERS = {
       return;
     }
 
+    // Disable One Tap / FedCM auto-prompt from GSI
+    google.accounts.id.disableAutoSelect();
+
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: clientId,
       scope: 'https://www.googleapis.com/auth/drive',
