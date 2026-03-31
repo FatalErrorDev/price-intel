@@ -43,12 +43,19 @@ var FOLDERS = {
       callback: function (response) {
         if (response.error) {
           console.error('OAuth error:', response.error);
+          updateAuthUI(false);
           return;
         }
         accessToken = response.access_token;
+        localStorage.setItem('driveAuthed', '1');
         updateAuthUI(true);
       },
     });
+
+    // Silent re-auth if user previously granted consent
+    if (localStorage.getItem('driveAuthed')) {
+      tokenClient.requestAccessToken({ prompt: '' });
+    }
   }
 
   function signIn() {
