@@ -366,7 +366,7 @@
       '#60a0f0', '#f0a040', '#4ecdc4', '#f06060',
       '#c8f060', '#a080f0', '#f060a0', '#80d0f0'
     ];
-    var competitors = config ? config.competitors : [];
+    var competitors = BRANCH_CONFIG[branch] ? BRANCH_CONFIG[branch].competitors : [];
 
     html += '<div class="chart-card" style="margin-bottom:1.5rem">';
     html += '<h2>Products Scraped Over Time</h2>';
