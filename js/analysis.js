@@ -360,6 +360,25 @@
     html += '<div class="chart-card"><h2>% Cheapest Over Time</h2><div style="height:250px"><canvas id="' + trendCheapId + '"></canvas></div></div>';
     html += '</div>';
 
+    // Competitor scrape coverage over time
+    var trendCovId = 'chart-trend-coverage-' + branch;
+    var compColors = [
+      '#60a0f0', '#f0a040', '#4ecdc4', '#f06060',
+      '#c8f060', '#a080f0', '#f060a0', '#80d0f0'
+    ];
+    var competitors = config ? config.competitors : [];
+
+    html += '<div class="chart-card" style="margin-bottom:1.5rem">';
+    html += '<h2>Products Scraped Over Time</h2>';
+    html += '<div class="comp-toggle-row" id="comp-toggles-' + branch + '">';
+    competitors.forEach(function (comp, i) {
+      var color = compColors[i % compColors.length];
+      html += '<button class="comp-toggle active" data-index="' + i + '" style="--comp-color:' + color + '">' + escHtml(comp) + '</button>';
+    });
+    html += '</div>';
+    html += '<div style="height:280px"><canvas id="' + trendCovId + '"></canvas></div>';
+    html += '</div>';
+
     // Segment trend table
     html += '<div class="card"><h2>Segment Trend (First \u2192 Last)</h2>';
     html += renderSegmentTrend(first, last);
@@ -369,6 +388,23 @@
 
     createLineChart(trendMedId, dates, medians);
     createLineChart(trendCheapId, dates, pctCheapers);
+
+    // Create competitor coverage chart and wire toggle buttons
+    var covChart = createCompCoverageLineChart(trendCovId, dates, analyses);
+    if (covChart) {
+      var toggleContainer = document.getElementById('comp-toggles-' + branch);
+      if (toggleContainer) {
+        toggleContainer.querySelectorAll('.comp-toggle').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var idx = parseInt(btn.dataset.index, 10);
+            btn.classList.toggle('active');
+            var visible = btn.classList.contains('active');
+            covChart.setDatasetVisibility(idx, visible);
+            covChart.update();
+          });
+        });
+      }
+    }
   }
 
   function renderSegmentTrend(first, last) {

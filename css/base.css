@@ -367,6 +367,29 @@ a:hover { text-decoration: underline; }
 .pct-badge.positive { background: rgba(240,96,96,0.15); color: #f06060; }
 .pct-badge.negative { background: rgba(78,205,196,0.15); color: #4ecdc4; }
 
+/* === Competitor Toggle Buttons === */
+.comp-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+.comp-toggle {
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  border: 1px solid var(--comp-color);
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--comp-color);
+  transition: background 0.15s, color 0.15s;
+}
+.comp-toggle.active {
+  background: var(--comp-color);
+  color: var(--bg);
+}
+
 /* === Trend Table === */
 .trend-table {
   width: 100%;

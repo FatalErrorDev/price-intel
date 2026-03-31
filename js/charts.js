@@ -162,10 +162,74 @@
     });
   }
 
+  function createCompCoverageLineChart(canvasId, dates, analyses) {
+    destroyChart(canvasId);
+    var ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    var d = getChartDefaults();
+
+    var compColors = [
+      '#60a0f0', '#f0a040', '#4ecdc4', '#f06060',
+      '#c8f060', '#a080f0', '#f060a0', '#80d0f0'
+    ];
+
+    // Collect all competitor names from all analyses
+    var competitors = [];
+    analyses.forEach(function (a) {
+      if (a.compCoverage) {
+        Object.keys(a.compCoverage).forEach(function (c) {
+          if (competitors.indexOf(c) === -1) competitors.push(c);
+        });
+      }
+    });
+
+    var datasets = competitors.map(function (comp, i) {
+      var color = compColors[i % compColors.length];
+      return {
+        label: comp,
+        data: analyses.map(function (a) {
+          return a.compCoverage ? (a.compCoverage[comp] || 0) : 0;
+        }),
+        borderColor: color,
+        backgroundColor: color + '18',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: color,
+        pointBorderColor: color,
+        borderWidth: 2,
+      };
+    });
+
+    chartInstances[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: { labels: dates, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            ticks: { color: d.text3, font: { family: d.fontMono, size: 10 } },
+            grid: { color: d.gridColor },
+          },
+          y: {
+            ticks: { color: d.text3, font: { family: d.fontMono, size: 10 } },
+            grid: { color: d.gridColor },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+
+    return chartInstances[canvasId];
+  }
+
   // Expose globals
   window.destroyChart = destroyChart;
   window.destroyAllCharts = destroyAllCharts;
   window.createDistributionChart = createDistributionChart;
   window.createCoverageChart = createCoverageChart;
   window.createLineChart = createLineChart;
+  window.createCompCoverageLineChart = createCompCoverageLineChart;
 })();
