@@ -169,8 +169,8 @@
     var d = getChartDefaults();
 
     var compColors = [
-      '#60a0f0', '#f0a040', '#4ecdc4', '#f06060',
-      '#c8f060', '#a080f0', '#f060a0', '#80d0f0'
+      '#e06090', '#40c8a0', '#d0a030', '#8070e0',
+      '#50b8d8', '#c05050', '#70b040', '#d080c0'
     ];
 
     // Collect all competitor names from all analyses
