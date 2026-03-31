@@ -85,6 +85,15 @@ var FOLDERS = {
     }
   }
 
+  function disconnectDrive() {
+    if (accessToken) {
+      google.accounts.oauth2.revoke(accessToken);
+    }
+    accessToken = null;
+    sessionStorage.removeItem('driveToken');
+    updateAuthUI(false);
+  }
+
   function isSignedIn() {
     return !!accessToken;
   }
@@ -99,7 +108,7 @@ var FOLDERS = {
     var bar = document.getElementById('auth-bar');
     if (!bar) return;
     if (connected) {
-      bar.innerHTML = '<span class="status-ok">Connected to Drive \u2713</span>';
+      bar.innerHTML = '<span class="status-ok" onclick="disconnectDrive()" style="cursor:pointer" title="Click to disconnect">Connected to Drive \u2713</span>';
     } else if (errorMsg) {
       bar.innerHTML = '<span style="color:#f06060">' + errorMsg + '</span>';
     } else {
@@ -176,6 +185,7 @@ var FOLDERS = {
 
   // Expose globals
   window.signIn = signIn;
+  window.disconnectDrive = disconnectDrive;
   window.isSignedIn = isSignedIn;
   window.uploadFile = uploadFile;
   window.listFiles = listFiles;
