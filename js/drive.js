@@ -47,14 +47,27 @@ var FOLDERS = {
           return;
         }
         accessToken = response.access_token;
-        localStorage.setItem('driveAuthed', '1');
+        sessionStorage.setItem('driveToken', response.access_token);
         updateAuthUI(true);
       },
     });
 
-    // Silent re-auth if user previously granted consent
-    if (localStorage.getItem('driveAuthed')) {
-      tokenClient.requestAccessToken({ prompt: '' });
+    // Restore token from session if available
+    var saved = sessionStorage.getItem('driveToken');
+    if (saved) {
+      // Verify the token is still valid
+      fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + saved)
+        .then(function (resp) {
+          if (resp.ok) {
+            accessToken = saved;
+            updateAuthUI(true);
+          } else {
+            sessionStorage.removeItem('driveToken');
+          }
+        })
+        .catch(function () {
+          sessionStorage.removeItem('driveToken');
+        });
     }
   }
 
