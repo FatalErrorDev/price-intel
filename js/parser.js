@@ -196,9 +196,12 @@ var BRANCH_CONFIG = {
       var segName = row['Segment'] || 'Brak segmentu';
       if (segName === '-') segName = 'Brak segmentu';
       if (!segmentMap[segName]) {
-        segmentMap[segName] = { name: segName, total: 0, cheaper: 0, expensive: 0, diffs: [] };
+        segmentMap[segName] = { name: segName, total: 0, pricePoints: 0, cheaper: 0, expensive: 0, diffs: [] };
       }
       segmentMap[segName].total++;
+      config.competitors.forEach(function (c) {
+        if (hasPrice(row[c])) segmentMap[segName].pricePoints++;
+      });
       if (hasDiff) {
         if (pct <= 0) segmentMap[segName].cheaper++;
         else segmentMap[segName].expensive++;
@@ -211,6 +214,7 @@ var BRANCH_CONFIG = {
       return {
         name: s.name,
         total: s.total,
+        pricePoints: s.pricePoints,
         cheaper: s.cheaper,
         expensive: s.expensive,
         median: calcMedian(s.diffs),

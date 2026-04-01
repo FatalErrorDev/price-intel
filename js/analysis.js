@@ -412,7 +412,7 @@
         name: name,
         values: analyses.map(function (a) {
           var seg = (a.segments || []).find(function (s) { return s.name === name; });
-          return seg ? (seg.cheaper + seg.expensive) : 0;
+          return seg ? seg.pricePoints : 0;
         })
       };
     });
