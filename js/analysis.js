@@ -371,7 +371,10 @@
     var trendCovId = 'chart-trend-coverage-' + branch;
 
     html += '<div class="chart-card" style="margin-bottom:1.5rem">';
-    html += '<h2>Products Scraped Over Time</h2>';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between">';
+    html += '<h2 style="margin:0">Products Scraped Over Time</h2>';
+    html += '<button class="comp-toggle" id="select-all-toggle-' + branch + '" style="--comp-color:var(--text3)">All</button>';
+    html += '</div>';
     html += '<div class="mode-toggle" style="margin-bottom:0.5rem">';
     html += '<button class="mode-btn active" data-covmode="competitors" data-branch="' + branch + '">Competitors</button>';
     html += '<button class="mode-btn" data-covmode="segments" data-branch="' + branch + '">Segments</button>';
@@ -443,6 +446,22 @@
           }
         });
       });
+
+      // Wire select all / none toggle
+      var selectAllBtn = document.getElementById('select-all-toggle-' + branch);
+      if (selectAllBtn) {
+        selectAllBtn.textContent = 'None';
+        selectAllBtn.addEventListener('click', function () {
+          var showAll = selectAllBtn.textContent === 'All';
+          selectAllBtn.textContent = showAll ? 'None' : 'All';
+          toggleContainer.querySelectorAll('.comp-toggle').forEach(function (btn) {
+            btn.classList.toggle('active', showAll);
+            var idx = parseInt(btn.dataset.index, 10);
+            if (covChart) covChart.setDatasetVisibility(idx, showAll);
+          });
+          if (covChart) covChart.update();
+        });
+      }
     }
 
     buildCovChart(compSeries);
