@@ -24,6 +24,7 @@ var FOLDERS = {
     return meta ? meta.content : '';
   }
 
+  // Init tokens, get IDs, ensure google integration
   function initDrive() {
     var clientId = getClientId();
     if (!clientId || clientId === 'YOUR_CLIENT_ID_HERE') {
@@ -37,7 +38,7 @@ var FOLDERS = {
       return;
     }
 
-    // Disable One Tap / FedCM auto-prompt from GSI
+    // Disable default login
     google.accounts.id.disableAutoSelect();
 
     tokenClient = google.accounts.oauth2.initTokenClient({

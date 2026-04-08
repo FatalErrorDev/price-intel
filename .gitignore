@@ -1,3 +1,7 @@
+#CUSTOM
+*.md
+
+
 # Logs
 logs
 *.log
