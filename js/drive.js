@@ -107,6 +107,9 @@ var FOLDERS = {
     if (!bar) return;
     if (connected) {
       bar.innerHTML = '<span class="status-ok" onclick="disconnectDrive()" style="cursor:pointer" title="Click to disconnect">Connected to Drive \u2713</span>';
+      if (typeof window.loadScheduledFiles === 'function') {
+        window.loadScheduledFiles();
+      }
     } else if (errorMsg) {
       bar.innerHTML = '<span style="color:#f06060">' + errorMsg + '</span>';
     } else {

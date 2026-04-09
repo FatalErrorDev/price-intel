@@ -1,1 +1,48 @@
 body.page-scraping { --accent: #c8f060; --accent-dim: rgba(200,240,96,0.08); }
+
+/* Scheduled Files Panel */
+.scheduled-files { margin-top: 1rem; }
+
+.scheduled-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.scheduled-header h2 { margin-bottom: 0; }
+
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+
+.scheduled-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.scheduled-table th {
+  text-align: left;
+  color: var(--text3);
+  font-weight: 400;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.scheduled-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+}
+.scheduled-table td:first-child {
+  color: var(--text);
+  font-weight: 500;
+}
+.scheduled-table td a {
+  color: var(--text2);
+  max-width: 280px;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scheduled-table td a:hover { color: var(--accent); }

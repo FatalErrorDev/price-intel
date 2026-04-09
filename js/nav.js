@@ -23,6 +23,9 @@
       var scrapingPage = document.getElementById('page-scraping');
       if (scrapingPage) scrapingPage.classList.add('active');
       document.body.className = 'page-scraping';
+      if (typeof window.loadScheduledFiles === 'function') {
+        window.loadScheduledFiles();
+      }
     }
 
     // Update tab active state

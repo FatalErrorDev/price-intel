@@ -12,6 +12,11 @@
     initDropZone('schedule-drop', onScheduleFile);
     initDayPicker();
     initUploadButtons();
+
+    var refreshBtn = document.getElementById('btn-refresh-scheduled');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', loadScheduledFiles);
+    }
   });
 
   /* === Drop Zone === */
@@ -200,6 +205,7 @@
           '<button class="btn btn-outline" onclick="resetSchedule()">Schedule another</button>' +
         '</div>';
       if (warningEl) { warningEl.innerHTML = ''; delete warningEl.dataset.confirmed; }
+      loadScheduledFiles();
     } catch (err) {
       resultEl.innerHTML = '<div class="error-msg">' + escHtml(err.message) + '</div>';
     }
@@ -225,6 +231,85 @@
     updateScheduleButton();
   }
 
+  /* === Scheduled Files Panel === */
+  var DAY_ORDER = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  var DAY_LABELS = {
+    monday:'Mon', tuesday:'Tue', wednesday:'Wed',
+    thursday:'Thu', friday:'Fri', saturday:'Sat', sunday:'Sun'
+  };
+  var scheduledLoading = false;
+
+  async function loadScheduledFiles() {
+    var container = document.getElementById('scheduled-files-content');
+    if (!container || scheduledLoading) return;
+
+    if (!isSignedIn()) {
+      container.innerHTML = '<div class="empty-state">Connect Google Drive to see scheduled files.</div>';
+      return;
+    }
+
+    scheduledLoading = true;
+    container.innerHTML = '<div class="loading-state"><span class="spinner"></span> Loading scheduled files\u2026</div>';
+
+    try {
+      var results = await Promise.allSettled(
+        DAY_ORDER.map(function (day) {
+          return listFiles(FOLDERS[day]).then(function (files) {
+            return files.map(function (f) {
+              return { day: day, name: f.name, modifiedTime: f.modifiedTime, webViewLink: f.webViewLink };
+            });
+          });
+        })
+      );
+
+      var allFiles = [];
+      var hasError = false;
+      results.forEach(function (r) {
+        if (r.status === 'fulfilled') {
+          allFiles = allFiles.concat(r.value);
+        } else {
+          hasError = true;
+        }
+      });
+
+      if (allFiles.length === 0 && hasError) {
+        container.innerHTML = '<div class="error-msg">Failed to load scheduled files.</div>';
+        return;
+      }
+      if (allFiles.length === 0) {
+        container.innerHTML = '<div class="empty-state">No files scheduled for any day.</div>';
+        return;
+      }
+
+      renderScheduledTable(container, allFiles, hasError);
+    } catch (err) {
+      container.innerHTML = '<div class="error-msg">' + escHtml(err.message) + '</div>';
+    } finally {
+      scheduledLoading = false;
+    }
+  }
+
+  function renderScheduledTable(container, files, hasPartialError) {
+    var html = '';
+    if (hasPartialError) {
+      html += '<div class="warning-banner">Some folders could not be loaded.</div>';
+    }
+    html += '<table class="scheduled-table"><thead><tr>' +
+      '<th>Day</th><th>File</th><th>Uploaded</th>' +
+      '</tr></thead><tbody>';
+    files.forEach(function (f) {
+      var dayLabel = DAY_LABELS[f.day] || f.day;
+      var dateStr = f.modifiedTime ? new Date(f.modifiedTime).toLocaleDateString('pl-PL') : '\u2014';
+      var nameHtml = f.webViewLink
+        ? '<a href="' + escHtml(f.webViewLink) + '" target="_blank" rel="noopener noreferrer" title="' + escHtml(f.name) + '">' + escHtml(f.name) + '</a>'
+        : escHtml(f.name);
+      html += '<tr><td>' + escHtml(dayLabel) + '</td><td>' + nameHtml + '</td><td>' + escHtml(dateStr) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
   window.resetRunNow = resetRunNow;
   window.resetSchedule = resetSchedule;
+  window.loadScheduledFiles = loadScheduledFiles;
 })();
