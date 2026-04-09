@@ -249,8 +249,6 @@
     }
 
     scheduledLoading = true;
-    var refreshBtn = document.getElementById('btn-refresh-scheduled');
-    if (refreshBtn) refreshBtn.style.animation = 'spin 1s linear infinite';
     container.innerHTML = '<div class="loading-state"><span class="spinner"></span> Loading scheduled files\u2026</div>';
 
     try {
@@ -284,8 +282,6 @@
       container.innerHTML = '<div class="error-msg">' + escHtml(err.message) + '</div>';
     } finally {
       scheduledLoading = false;
-      var refreshBtn = document.getElementById('btn-refresh-scheduled');
-      if (refreshBtn) refreshBtn.style.animation = '';
     }
   }
 
