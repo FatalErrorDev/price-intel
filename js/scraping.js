@@ -172,27 +172,9 @@
   async function doScheduleUpload() {
     if (!scheduleFile || !selectedDay) return;
     var resultEl = document.getElementById('schedule-result');
-    var warningEl = document.getElementById('schedule-warning');
     if (!isSignedIn()) {
       resultEl.innerHTML = '<div class="error-msg">Please connect Google Drive first.</div>';
       return;
-    }
-
-    // Check for existing file
-    resultEl.innerHTML = '<div class="loading-state"><span class="spinner"></span> Checking folder...</div>';
-    try {
-      var existing = await listFiles(FOLDERS[selectedDay]);
-      if (existing.length > 0 && warningEl && !warningEl.dataset.confirmed) {
-        warningEl.innerHTML =
-          '<div class="warning-banner">\u26A0 A file is already waiting for ' +
-          selectedDay.charAt(0).toUpperCase() + selectedDay.slice(1) +
-          '. Uploading will replace it.</div>';
-        warningEl.dataset.confirmed = 'true';
-        resultEl.innerHTML = '';
-        return;
-      }
-    } catch (e) {
-      // Could not check — proceed anyway
     }
 
     resultEl.innerHTML = '<div class="loading-state"><span class="spinner"></span> Uploading...</div>';
@@ -204,7 +186,6 @@
           (res.webViewLink ? '<a href="' + res.webViewLink + '" target="_blank">Open in Drive</a>' : '') +
           '<button class="btn btn-outline" onclick="resetSchedule()">Schedule another</button>' +
         '</div>';
-      if (warningEl) { warningEl.innerHTML = ''; delete warningEl.dataset.confirmed; }
       loadScheduledFiles();
     } catch (err) {
       resultEl.innerHTML = '<div class="error-msg">' + escHtml(err.message) + '</div>';
@@ -226,8 +207,6 @@
     resetState('schedule-result');
     document.getElementById('schedule-drop').classList.remove('has-file');
     document.querySelectorAll('.day-btn').forEach(function (b) { b.classList.remove('active'); });
-    var warningEl = document.getElementById('schedule-warning');
-    if (warningEl) { warningEl.innerHTML = ''; delete warningEl.dataset.confirmed; }
     updateScheduleButton();
   }
 
