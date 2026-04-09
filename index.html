@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google-client-id" content="73506200897-s26ivej07i439ucihg5vaeeknu4khe2k.apps.googleusercontent.com">
+  <meta name="progress-relay-url" content="http://localhost:8001">
   <title>Sewera // Price Intel</title>
 
   <!-- Fonts -->
@@ -104,6 +105,28 @@
 
     </div>
 
+      <!-- Scraping Progress Panel -->
+      <div class="card scraping-progress" id="scraping-progress">
+        <div class="scraping-progress-header">
+          <h2>Scraping Progress</h2>
+          <span class="progress-connection-status" id="progress-connection-status"></span>
+        </div>
+        <div class="progress-columns">
+          <div class="progress-block" id="progress-sewera">
+            <h3 class="progress-block-title">Sewera</h3>
+            <div class="progress-sessions" id="progress-sessions-sewera">
+              <div class="empty-state empty-state-sm">No active sessions</div>
+            </div>
+          </div>
+          <div class="progress-block" id="progress-dobromir">
+            <h3 class="progress-block-title">Dobromir</h3>
+            <div class="progress-sessions" id="progress-sessions-dobromir">
+              <div class="empty-state empty-state-sm">No active sessions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Scheduled Files Panel -->
       <div class="card scheduled-files" id="scheduled-files">
         <div class="scheduled-header">
@@ -160,6 +183,7 @@
   <script src="js/charts.js"></script>
   <script src="js/nav.js"></script>
   <script src="js/scraping.js"></script>
+  <script src="js/progress.js"></script>
   <script src="js/analysis.js"></script>
   <script src="js/magnifier.js"></script>
 
