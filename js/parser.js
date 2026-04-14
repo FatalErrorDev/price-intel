@@ -41,6 +41,15 @@ var BRANCH_CONFIG = {
     return val !== null && val !== undefined && val !== '-' && val !== '' && String(val).trim() !== '' && String(val).trim() !== '-';
   }
 
+  function findCheapestComp(row, competitors) {
+    var best = null, bestPrice = Infinity;
+    competitors.forEach(function (c) {
+      var p = parsePct(row[c]);
+      if (p !== null && p < bestPrice) { bestPrice = p; best = c; }
+    });
+    return best || '-';
+  }
+
   function calcMedian(arr) {
     if (arr.length === 0) return 0;
     var sorted = arr.slice().sort(function (a, b) { return a - b; });
@@ -77,6 +86,7 @@ var BRANCH_CONFIG = {
     // Find name column: look for columns containing key substrings
     var nameKeys = [];
     var producerKeys = [];
+    var codeKeys = [];
     allCols.forEach(function (col) {
       var lc = col.toLowerCase();
       if (lc.indexOf('nazwa') !== -1 || lc.indexOf('name') !== -1 || lc.indexOf('produkt') !== -1 || lc.indexOf('product') !== -1 || lc.indexOf('towar') !== -1 || lc.indexOf('opis') !== -1) {
@@ -84,6 +94,9 @@ var BRANCH_CONFIG = {
       }
       if (lc.indexOf('producent') !== -1 || lc.indexOf('producer') !== -1 || lc.indexOf('marka') !== -1 || lc.indexOf('brand') !== -1 || lc.indexOf('dostawca') !== -1) {
         producerKeys.push(col);
+      }
+      if (lc.indexOf('kod') !== -1 || lc.indexOf('indeks') !== -1 || lc === 'index' || lc.indexOf('ean') !== -1 || lc.indexOf('sku') !== -1 || lc.indexOf('code') !== -1) {
+        codeKeys.push(col);
       }
     });
     if (nameKeys.length === 0) {
@@ -157,18 +170,22 @@ var BRANCH_CONFIG = {
         // Top expensive (positive diff = we are more expensive)
         if (pct > 0) {
           topExpensiveList.push({
+            code: findCol(row, codeKeys),
             name: findCol(row, nameKeys),
             producer: findCol(row, producerKeys),
             pct: pct,
+            competitor: findCheapestComp(row, config.competitors),
           });
         }
 
         // Top cheapest (negative diff = we are cheaper)
         if (pct < 0) {
           topCheapestList.push({
+            code: findCol(row, codeKeys),
             name: findCol(row, nameKeys),
             producer: findCol(row, producerKeys),
             pct: pct,
+            competitor: findCheapestComp(row, config.competitors),
           });
         }
       }

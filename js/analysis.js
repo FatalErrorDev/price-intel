@@ -308,12 +308,14 @@
 
   function renderProductTable(items) {
     if (items.length === 0) return '<div class="empty-state">No data</div>';
-    var html = '<table class="product-table"><thead><tr><th>Product</th><th>Producer</th><th>Diff</th></tr></thead><tbody>';
+    var html = '<table class="product-table"><thead><tr><th>Code</th><th>Producer</th><th>Product Name</th><th>Diff</th><th>Competitor</th></tr></thead><tbody>';
     items.forEach(function (item) {
       var cls = item.pct > 0 ? 'positive' : 'negative';
       var sign = item.pct > 0 ? '+' : '';
-      html += '<tr><td>' + escHtml(item.name) + '</td><td>' + escHtml(item.producer) + '</td>' +
-        '<td><span class="pct-badge ' + cls + '">' + sign + item.pct.toFixed(2) + '%</span></td></tr>';
+      html += '<tr><td>' + escHtml(item.code) + '</td><td>' + escHtml(item.producer) + '</td>' +
+        '<td>' + escHtml(item.name) + '</td>' +
+        '<td><span class="pct-badge ' + cls + '">' + sign + item.pct.toFixed(2) + '%</span></td>' +
+        '<td>' + escHtml(item.competitor) + '</td></tr>';
     });
     html += '</tbody></table>';
     return html;
