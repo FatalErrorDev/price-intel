@@ -89,14 +89,12 @@ var BRANCH_CONFIG = {
     var codeKeys = [];
     allCols.forEach(function (col) {
       var lc = col.toLowerCase();
-      if (lc.indexOf('nazwa') !== -1 || lc.indexOf('name') !== -1 || lc.indexOf('produkt') !== -1 || lc.indexOf('product') !== -1 || lc.indexOf('towar') !== -1 || lc.indexOf('opis') !== -1) {
-        nameKeys.push(col);
-      }
       if (lc.indexOf('producent') !== -1 || lc.indexOf('producer') !== -1 || lc.indexOf('marka') !== -1 || lc.indexOf('brand') !== -1 || lc.indexOf('dostawca') !== -1) {
         producerKeys.push(col);
-      }
-      if (lc.indexOf('kod') !== -1 || lc.indexOf('indeks') !== -1 || lc === 'index' || lc.indexOf('ean') !== -1 || lc.indexOf('sku') !== -1 || lc.indexOf('code') !== -1) {
+      } else if (lc.indexOf('kod') !== -1 || lc.indexOf('indeks') !== -1 || lc === 'index' || lc.indexOf('ean') !== -1 || lc.indexOf('sku') !== -1 || lc.indexOf('code') !== -1) {
         codeKeys.push(col);
+      } else if (lc.indexOf('nazwa') !== -1 || lc.indexOf('name') !== -1 || lc.indexOf('produkt') !== -1 || lc.indexOf('product') !== -1 || lc.indexOf('towar') !== -1 || lc.indexOf('opis') !== -1) {
+        nameKeys.push(col);
       }
     });
     if (nameKeys.length === 0) {
