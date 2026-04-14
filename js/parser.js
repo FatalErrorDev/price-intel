@@ -5,7 +5,7 @@ var BRANCH_CONFIG = {
     label:       'Sewera',
     ownPrice:    'Sewera B2C KTW',
     diffColumn:  'Sewera-Najtańszy',
-    competitors: ['Castorama', 'LeroyMerlin', 'OBI', 'Bednarek', 'Lubar', 'Maldrew', 'Viverto'],
+    competitors: ['Castorama', 'Leroy Merlin', 'OBI', 'Bednarek', 'Lubar', 'Maldrew', 'Viverto'],
     accent:      'sewera',
     folderId:    FOLDERS.sewera,
   },
@@ -13,7 +13,7 @@ var BRANCH_CONFIG = {
     label:       'Dobromir',
     ownPrice:    'Dobromir',
     diffColumn:  'Dobromir-Najtańszy',
-    competitors: ['BricoMarche', 'Castorama'],
+    competitors: ['Brico Marche', 'Castorama'],
     accent:      'dobromir',
     folderId:    FOLDERS.dobromir,
   },
@@ -38,7 +38,9 @@ var BRANCH_CONFIG = {
   }
 
   function hasPrice(val) {
-    return val !== null && val !== undefined && val !== '-' && val !== '' && String(val).trim() !== '' && String(val).trim() !== '-';
+    if (val === null || val === undefined || val === '-' || val === '') return false;
+    var s = String(val).trim();
+    return s !== '' && s !== '-';
   }
 
   function findCheapestComp(row, competitors) {
@@ -61,15 +63,9 @@ var BRANCH_CONFIG = {
   function findCol(row, keys) {
     for (var i = 0; i < keys.length; i++) {
       var val = row[keys[i]];
-      if (val !== undefined && val !== null && String(val).trim() !== '' && String(val).trim() !== '-') {
-        return String(val);
-      }
-    }
-    // Second pass: accept any value that exists (even '-' means the column exists)
-    for (var j = 0; j < keys.length; j++) {
-      var val2 = row[keys[j]];
-      if (val2 !== undefined && val2 !== null && String(val2).trim() !== '') {
-        return String(val2);
+      if (val !== undefined && val !== null) {
+        var s = String(val).trim();
+        if (s !== '' && s !== '-') return String(val);
       }
     }
     return '-';
