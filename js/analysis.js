@@ -596,13 +596,19 @@
     }
 
     var firstColLabel = isSegments ? 'Segment' : 'Konkurent';
-    var header = '<tr><th>' + firstColLabel + '</th>';
+    var header1 = '<tr>'
+      + '<th rowspan="2">' + firstColLabel + '</th>'
+      + '<th colspan="' + pairs.length + '" class="pair-group pair-group-start">Zmiany</th>'
+      + '<th rowspan="2" class="pair-group-start">\u0141\u0105cznie</th>'
+      + '<th rowspan="2">Ocena aktywno\u015Bci</th>'
+      + '</tr>';
+    var header2 = '<tr>';
     pairs.forEach(function (p, idx) {
       var startCls = idx === 0 ? ' class="pair-group-start"' : '';
-      header += '<th' + startCls + '>' + shortLabel(p.prev, p.next) + '</th>';
+      header2 += '<th' + startCls + '>' + shortLabel(p.prev, p.next) + '</th>';
     });
-    header += '<th class="pair-group-start">\u0141\u0105cznie</th>'
-           +  '<th>Ocena aktywno\u015Bci</th></tr>';
+    header2 += '</tr>';
+    var header = header1 + header2;
 
     var rows = rowKeys.map(function (k) {
       var total = 0;
