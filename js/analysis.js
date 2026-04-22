@@ -604,16 +604,21 @@
       var rating, ratingClass;
       if (activityPct >= 20)     { rating = 'Bardzo aktywny'; ratingClass = 'activity-very'; }
       else if (activityPct >= 5) { rating = 'Aktywny';        ratingClass = 'activity-active'; }
-      else                        { rating = 'Marginalny';     ratingClass = 'activity-marginal'; }
+      else if (activityPct > 0)  { rating = 'Marginalny';     ratingClass = 'activity-marginal'; }
+      else                        { rating = 'Zerowy';         ratingClass = 'activity-zero'; }
 
       return {
         name: k,
         total: total,
+        activityPct: activityPct,
         cellHtml: cellHtml,
         rating: rating,
         ratingClass: ratingClass,
       };
-    }).sort(function (a, b) { return b.total - a.total; });
+    }).sort(function (a, b) {
+      if (b.activityPct !== a.activityPct) return b.activityPct - a.activityPct;
+      return b.total - a.total;
+    });
 
     var rowsHtml = '';
     rows.forEach(function (r) {
