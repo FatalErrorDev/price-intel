@@ -217,9 +217,10 @@ var BRANCH_CONFIG = {
     topExpensiveList.sort(function (a, b) { return b.pct - a.pct; });
     topCheapestList.sort(function (a, b) { return a.pct - b.pct; });
 
-    // Per-product competitor values, keyed by "Kod towaru" (stable product code).
+    // Per-product competitor values + segment, keyed by "Kod towaru" (stable product code).
     // Used by the trend view to diff against the next file (price changes / new tracking).
     var productCompPrices = {};
+    var productSegments = {};
     rows.forEach(function (row) {
       var code = row['Kod towaru'];
       if (code === undefined || code === null || code === '' || code === '-') {
@@ -236,7 +237,12 @@ var BRANCH_CONFIG = {
           any = true;
         }
       });
-      if (any) productCompPrices[code] = entry;
+      if (any) {
+        productCompPrices[code] = entry;
+        var segName = row['Segment'] || 'Brak segmentu';
+        if (segName === '-') segName = 'Brak segmentu';
+        productSegments[code] = segName;
+      }
     });
 
     return {
@@ -253,6 +259,7 @@ var BRANCH_CONFIG = {
       topExpensive: topExpensiveList.slice(0, 10),
       topCheapest: topCheapestList.slice(0, 10),
       productCompPrices: productCompPrices,
+      productSegments: productSegments,
     };
   }
 

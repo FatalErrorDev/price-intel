@@ -381,9 +381,15 @@
     html += '<div style="height:280px"><canvas id="' + trendCovId + '"></canvas></div>';
     html += '</div>';
 
-    // Competitor price activity table
-    html += '<div class="card" style="margin-bottom:1.5rem"><h2>Competitor Price Activity</h2>';
-    html += renderCompetitorActivity(analyses, branch);
+    // Price activity table — switchable between Competitors and Segments
+    var actTableId = 'activity-table-' + branch;
+    html += '<div class="card" style="margin-bottom:1.5rem">';
+    html += '<h2>Price Activity</h2>';
+    html += '<div class="mode-toggle" style="margin-bottom:0.75rem">';
+    html += '<button class="mode-btn active" data-actmode="competitors" data-branch="' + branch + '">Competitors</button>';
+    html += '<button class="mode-btn" data-actmode="segments" data-branch="' + branch + '">Segments</button>';
+    html += '</div>';
+    html += '<div id="' + actTableId + '">' + renderActivityTable(analyses, branch, 'competitors') + '</div>';
     html += '</div>';
 
     // Segment trend table
@@ -480,15 +486,24 @@
         buildCovChart(btn.dataset.covmode === 'segments' ? segSeries : compSeries);
       });
     });
+
+    // Wire activity-table mode switch
+    container.querySelectorAll('[data-actmode]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        container.querySelectorAll('[data-actmode]').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        var target = document.getElementById(actTableId);
+        if (target) target.innerHTML = renderActivityTable(analyses, branch, btn.dataset.actmode);
+      });
+    });
   }
 
-  function renderCompetitorActivity(analyses, branch) {
+  function renderActivityTable(analyses, branch, mode) {
     var competitors = (BRANCH_CONFIG[branch] || {}).competitors || [];
     if (analyses.length < 2 || competitors.length === 0) {
       return '<div class="empty-state">Need at least two files to compute activity.</div>';
     }
 
-    // Limit to the last 5 files (= up to 4 consecutive pairs) for readability
     var recent = analyses.slice(-5);
 
     var pairs = [];
@@ -496,21 +511,41 @@
       pairs.push({ prev: recent[i], next: recent[i + 1] });
     }
 
+    var isSegments = mode === 'segments';
+
+    // Build the set of row keys (competitor names, or segment names across the recent window)
+    var rowKeys;
+    if (isSegments) {
+      var segSet = {};
+      recent.forEach(function (a) {
+        (a.segments || []).forEach(function (s) { segSet[s.name] = true; });
+      });
+      rowKeys = Object.keys(segSet);
+    } else {
+      rowKeys = competitors.slice();
+    }
+
+    // Per-pair diff: { rowKey -> { changes, added } }
     function diffPair(prev, next) {
       var prevMap = prev.productCompPrices || {};
       var nextMap = next.productCompPrices || {};
+      var prevSeg = prev.productSegments || {};
+      var nextSeg = next.productSegments || {};
       var out = {};
-      competitors.forEach(function (c) { out[c] = { changes: 0, added: 0 }; });
+      rowKeys.forEach(function (k) { out[k] = { changes: 0, added: 0 }; });
+
       Object.keys(nextMap).forEach(function (code) {
         var prevEntry = prevMap[code] || {};
         var nextEntry = nextMap[code] || {};
+        var seg = nextSeg[code] || prevSeg[code] || 'Brak segmentu';
         competitors.forEach(function (c) {
           var pv = prevEntry[c];
           var nv = nextEntry[c];
-          if (nv !== undefined) {
-            if (pv === undefined) out[c].added++;
-            else if (pv !== nv) out[c].changes++;
-          }
+          if (nv === undefined) return;
+          var bucket = isSegments ? out[seg] : out[c];
+          if (!bucket) { bucket = { changes: 0, added: 0 }; out[isSegments ? seg : c] = bucket; }
+          if (pv === undefined) bucket.added++;
+          else if (pv !== nv) bucket.changes++;
         });
       });
       return out;
@@ -526,8 +561,24 @@
       return fmt(a.date) + '\u2192' + fmt(b.date);
     }
 
-    // Two-row header: top row spans date ranges; bottom row labels zmian/nowe under each range
-    var header1 = '<tr><th rowspan="2">Konkurent</th>';
+    // Denominator for activity %: avg competitor coverage (competitors mode)
+    // or avg segment pricePoints (segments mode) — both represent "tracked product-competitor pairs per file"
+    function avgBase(key) {
+      var sum = 0, n = 0;
+      recent.forEach(function (a) {
+        if (isSegments) {
+          var seg = (a.segments || []).find(function (s) { return s.name === key; });
+          if (seg) { sum += seg.pricePoints; n++; }
+        } else if (a.compCoverage && typeof a.compCoverage[key] === 'number') {
+          sum += a.compCoverage[key];
+          n++;
+        }
+      });
+      return n > 0 ? sum / n : 0;
+    }
+
+    var firstColLabel = isSegments ? 'Segment' : 'Konkurent';
+    var header1 = '<tr><th rowspan="2">' + firstColLabel + '</th>';
     var header2 = '<tr>';
     pairs.forEach(function (p) {
       header1 += '<th colspan="2" class="pair-group">' + shortLabel(p.prev, p.next) + '</th>';
@@ -537,26 +588,18 @@
             + '<th rowspan="2">Ocena aktywno\u015Bci</th>';
     header2 += '</tr>';
 
-    // Precompute per-competitor rows (so we can sort by total desc)
-    var rows = competitors.map(function (c) {
+    var rows = rowKeys.map(function (k) {
       var total = 0;
       var cellHtml = '';
       perPair.forEach(function (pp, idx) {
-        var v = pp[c] || { changes: 0, added: 0 };
+        var v = pp[k] || { changes: 0, added: 0 };
         total += v.changes + v.added;
         var startCls = idx === 0 ? ' class="pair-group-start"' : '';
         cellHtml += '<td' + startCls + '>' + v.changes + '</td><td>' + v.added + '</td>';
       });
 
-      var avgCoverage = 0, covCount = 0;
-      recent.forEach(function (a) {
-        if (a.compCoverage && typeof a.compCoverage[c] === 'number') {
-          avgCoverage += a.compCoverage[c];
-          covCount++;
-        }
-      });
-      avgCoverage = covCount > 0 ? (avgCoverage / covCount) : 0;
-      var activityPct = avgCoverage > 0 ? (total / avgCoverage * 100) : 0;
+      var base = avgBase(k);
+      var activityPct = base > 0 ? (total / base * 100) : 0;
 
       var rating, ratingClass;
       if (activityPct >= 20)     { rating = 'Bardzo aktywny'; ratingClass = 'activity-very'; }
@@ -564,7 +607,7 @@
       else                        { rating = 'Marginalny';     ratingClass = 'activity-marginal'; }
 
       return {
-        name: c,
+        name: k,
         total: total,
         cellHtml: cellHtml,
         rating: rating,
