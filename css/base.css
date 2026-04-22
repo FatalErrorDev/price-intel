@@ -398,6 +398,8 @@ a:hover { text-decoration: underline; }
 .activity-active .activity-dot { background: #f0a040; }
 .activity-marginal { color: var(--text3); }
 .activity-marginal .activity-dot { background: transparent; border: 1px solid var(--text3); }
+.activity-zero { color: #70706c; opacity: 0.75; }
+.activity-zero .activity-dot { background: transparent; border: 1px dashed #70706c; }
 
 /* === Competitor Toggle Buttons === */
 .comp-toggle-row {

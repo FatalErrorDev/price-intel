@@ -601,22 +601,23 @@
       var base = avgBase(k);
       var activityPct = base > 0 ? (total / base * 100) : 0;
 
-      var rating, ratingClass;
-      if (activityPct >= 20)     { rating = 'Bardzo aktywny'; ratingClass = 'activity-very'; }
-      else if (activityPct >= 5) { rating = 'Aktywny';        ratingClass = 'activity-active'; }
-      else if (activityPct > 0)  { rating = 'Marginalny';     ratingClass = 'activity-marginal'; }
-      else                        { rating = 'Zerowy';         ratingClass = 'activity-zero'; }
+      var rating, ratingClass, ratingRank;
+      if (activityPct >= 20)     { rating = 'Bardzo aktywny'; ratingClass = 'activity-very';     ratingRank = 3; }
+      else if (activityPct >= 5) { rating = 'Aktywny';        ratingClass = 'activity-active';   ratingRank = 2; }
+      else if (activityPct > 0)  { rating = 'Marginalny';     ratingClass = 'activity-marginal'; ratingRank = 1; }
+      else                        { rating = 'Zerowy';         ratingClass = 'activity-zero';     ratingRank = 0; }
 
       return {
         name: k,
         total: total,
         activityPct: activityPct,
+        ratingRank: ratingRank,
         cellHtml: cellHtml,
         rating: rating,
         ratingClass: ratingClass,
       };
     }).sort(function (a, b) {
-      if (b.activityPct !== a.activityPct) return b.activityPct - a.activityPct;
+      if (b.ratingRank !== a.ratingRank) return b.ratingRank - a.ratingRank;
       return b.total - a.total;
     });
 
