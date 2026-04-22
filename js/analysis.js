@@ -580,8 +580,10 @@
           '<span class="activity-dot"></span>' + r.rating + '</span></td></tr>';
     });
 
-    return '<table class="trend-table competitor-activity-table"><thead>' +
-      header1 + '</tr>' + header2 + '</thead><tbody>' + rowsHtml + '</tbody></table>';
+    return '<div class="activity-table-wrap">' +
+      '<table class="trend-table competitor-activity-table"><thead>' +
+      header1 + '</tr>' + header2 + '</thead><tbody>' + rowsHtml + '</tbody></table>' +
+      '</div>';
   }
 
   function renderSegmentTrend(first, last) {
