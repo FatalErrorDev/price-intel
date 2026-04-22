@@ -395,7 +395,7 @@
 
     createLineChart(trendMedId, dates, medians);
     createLineChart(trendCheapId, dates, pctCheapers);
-    createLineChart(trendWithCompId, dates, withComps);
+    createLineChart(trendWithCompId, dates, withComps, { ySuffix: '' });
 
     // Build series data for both modes
     var competitors = BRANCH_CONFIG[branch] ? BRANCH_CONFIG[branch].competitors : [];
@@ -488,9 +488,12 @@
       return '<div class="empty-state">Need at least two files to compute activity.</div>';
     }
 
+    // Limit to the last 5 files (= up to 4 consecutive pairs) for readability
+    var recent = analyses.slice(-5);
+
     var pairs = [];
-    for (var i = 0; i < analyses.length - 1; i++) {
-      pairs.push({ prev: analyses[i], next: analyses[i + 1] });
+    for (var i = 0; i < recent.length - 1; i++) {
+      pairs.push({ prev: recent[i], next: recent[i + 1] });
     }
 
     function diffPair(prev, next) {
@@ -523,25 +526,30 @@
       return fmt(a.date) + '\u2192' + fmt(b.date);
     }
 
-    var header = '<tr><th>Konkurent</th>';
+    // Two-row header: top row spans date ranges; bottom row labels zmian/nowe under each range
+    var header1 = '<tr><th rowspan="2">Konkurent</th>';
+    var header2 = '<tr>';
     pairs.forEach(function (p) {
-      var lbl = shortLabel(p.prev, p.next);
-      header += '<th>' + lbl + ' zmian</th><th>' + lbl + ' nowe</th>';
+      header1 += '<th colspan="2" class="pair-group">' + shortLabel(p.prev, p.next) + '</th>';
+      header2 += '<th class="pair-group-start">zmian</th><th>nowe</th>';
     });
-    header += '<th>\u0141\u0105cznie zmian</th><th>Ocena aktywno\u015Bci</th></tr>';
+    header1 += '<th rowspan="2" class="pair-group-start">\u0141\u0105cznie</th>'
+            + '<th rowspan="2">Ocena aktywno\u015Bci</th>';
+    header2 += '</tr>';
 
-    var rowsHtml = '';
-    competitors.forEach(function (c) {
+    // Precompute per-competitor rows (so we can sort by total desc)
+    var rows = competitors.map(function (c) {
       var total = 0;
-      var cells = '';
-      perPair.forEach(function (pp) {
+      var cellHtml = '';
+      perPair.forEach(function (pp, idx) {
         var v = pp[c] || { changes: 0, added: 0 };
         total += v.changes + v.added;
-        cells += '<td>' + v.changes + '</td><td>' + v.added + '</td>';
+        var startCls = idx === 0 ? ' class="pair-group-start"' : '';
+        cellHtml += '<td' + startCls + '>' + v.changes + '</td><td>' + v.added + '</td>';
       });
 
       var avgCoverage = 0, covCount = 0;
-      analyses.forEach(function (a) {
+      recent.forEach(function (a) {
         if (a.compCoverage && typeof a.compCoverage[c] === 'number') {
           avgCoverage += a.compCoverage[c];
           covCount++;
@@ -555,14 +563,25 @@
       else if (activityPct >= 5) { rating = 'Aktywny';        ratingClass = 'activity-active'; }
       else                        { rating = 'Marginalny';     ratingClass = 'activity-marginal'; }
 
-      rowsHtml += '<tr><td>' + escHtml(c) + '</td>' + cells +
-        '<td>' + total + '</td>' +
-        '<td><span class="activity-badge ' + ratingClass + '">' +
-          '<span class="activity-dot"></span>' + rating + '</span></td></tr>';
+      return {
+        name: c,
+        total: total,
+        cellHtml: cellHtml,
+        rating: rating,
+        ratingClass: ratingClass,
+      };
+    }).sort(function (a, b) { return b.total - a.total; });
+
+    var rowsHtml = '';
+    rows.forEach(function (r) {
+      rowsHtml += '<tr><td class="activity-name">' + escHtml(r.name) + '</td>' + r.cellHtml +
+        '<td class="pair-group-start activity-total">' + r.total + '</td>' +
+        '<td><span class="activity-badge ' + r.ratingClass + '">' +
+          '<span class="activity-dot"></span>' + r.rating + '</span></td></tr>';
     });
 
     return '<table class="trend-table competitor-activity-table"><thead>' +
-      header + '</thead><tbody>' + rowsHtml + '</tbody></table>';
+      header1 + '</tr>' + header2 + '</thead><tbody>' + rowsHtml + '</tbody></table>';
   }
 
   function renderSegmentTrend(first, last) {
