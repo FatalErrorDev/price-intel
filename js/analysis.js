@@ -563,13 +563,15 @@
       return fmt(a.date) + '\u2192' + fmt(b.date);
     }
 
-    // Denominator for activity %: avg competitor coverage or avg segment pricePoints across the window
+    // Denominator for activity %:
+    //   Competitors → avg compCoverage (that competitor's own tracked inventory)
+    //   Segments    → avg segment.total (all products in the segment, not just priced ones)
     function avgBase(key) {
       var sum = 0, n = 0;
       recent.forEach(function (a) {
         if (isSegments) {
           var seg = (a.segments || []).find(function (s) { return s.name === key; });
-          if (seg) { sum += seg.pricePoints; n++; }
+          if (seg) { sum += seg.total; n++; }
         } else if (a.compCoverage && typeof a.compCoverage[key] === 'number') {
           sum += a.compCoverage[key];
           n++;
@@ -623,11 +625,14 @@
       var base = avgBase(k);
       var activityPct = base > 0 ? (total / base * 100) : 0;
 
+      var veryCut   = isSegments ? 75 : 20;
+      var activeCut = isSegments ? 25 : 5;
+
       var rating, ratingClass, ratingRank;
-      if (activityPct >= 20)     { rating = 'Bardzo aktywny'; ratingClass = 'activity-very';     ratingRank = 3; }
-      else if (activityPct >= 5) { rating = 'Aktywny';        ratingClass = 'activity-active';   ratingRank = 2; }
-      else if (activityPct > 0)  { rating = 'Marginalny';     ratingClass = 'activity-marginal'; ratingRank = 1; }
-      else                        { rating = 'Zerowy';         ratingClass = 'activity-zero';     ratingRank = 0; }
+      if (activityPct >= veryCut)       { rating = 'Bardzo aktywny'; ratingClass = 'activity-very';     ratingRank = 3; }
+      else if (activityPct >= activeCut) { rating = 'Aktywny';        ratingClass = 'activity-active';   ratingRank = 2; }
+      else if (activityPct > 0)          { rating = 'Marginalny';     ratingClass = 'activity-marginal'; ratingRank = 1; }
+      else                                { rating = 'Zerowy';         ratingClass = 'activity-zero';     ratingRank = 0; }
 
       return {
         name: k,
