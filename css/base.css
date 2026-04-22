@@ -258,11 +258,19 @@ a:hover { text-decoration: underline; }
 .kpi-value.red { color: #f06060; }
 .kpi-value.amber { color: #f0c040; }
 .kpi-value.green { color: #60d060; }
+.kpi-value-secondary {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text3);
+  font-family: var(--font-head);
+  margin-left: 0.4rem;
+  letter-spacing: 0;
+}
 
 /* === Charts Container === */
 .chart-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -366,6 +374,34 @@ a:hover { text-decoration: underline; }
 }
 .pct-badge.positive { background: rgba(240,96,96,0.15); color: #f06060; }
 .pct-badge.negative { background: rgba(78,205,196,0.15); color: #4ecdc4; }
+
+/* === Activity Badge (competitor price activity rating) === */
+.activity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.activity-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.activity-very   { color: #60d060; }
+.activity-very   .activity-dot { background: #60d060; }
+.activity-active { color: #f0a040; }
+.activity-active .activity-dot { background: #f0a040; }
+.activity-marginal { color: var(--text3); }
+.activity-marginal .activity-dot { background: transparent; border: 1px solid var(--text3); }
+
+.competitor-activity-table { display: block; overflow-x: auto; }
+.competitor-activity-table td,
+.competitor-activity-table th { white-space: nowrap; }
 
 /* === Competitor Toggle Buttons === */
 .comp-toggle-row {

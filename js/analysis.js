@@ -223,8 +223,8 @@
     html += '<div class="kpi-grid">';
     html += kpiCard('Total products', data.total, '');
     html += kpiCard('With competitor data', data.withComp, '');
-    html += kpiCard('% cheapest/equal', pctCheaper + '%', 'accent');
-    html += kpiCard('% more expensive', pctExpensive + '%', 'red');
+    html += kpiCard('% cheapest/equal', pctCheaper + '%', 'accent', data.cheaper);
+    html += kpiCard('% more expensive', pctExpensive + '%', 'red', data.expensive);
     html += kpiCard('Median price diff', (data.median >= 0 ? '+' : '') + data.median.toFixed(2) + '%', medianClass);
     html += kpiCard('No competitor data', data.noComp, '');
     html += '</div>';
@@ -273,9 +273,12 @@
     });
   }
 
-  function kpiCard(label, value, colorClass) {
+  function kpiCard(label, value, colorClass, secondary) {
+    var secHtml = (secondary !== undefined && secondary !== null && secondary !== '')
+      ? '<span class="kpi-value-secondary">| ' + secondary + '</span>'
+      : '';
     return '<div class="kpi"><div class="kpi-label">' + label + '</div>' +
-      '<div class="kpi-value ' + colorClass + '">' + value + '</div></div>';
+      '<div class="kpi-value ' + colorClass + '">' + value + secHtml + '</div></div>';
   }
 
   function renderSegmentBars(segments) {
@@ -347,13 +350,19 @@
     var pctCheapers = analyses.map(function (a) {
       return a.withComp > 0 ? (a.cheaper / a.withComp * 100) : 0;
     });
+    var withComps = analyses.map(function (a) { return a.withComp; });
 
     var trendMedId = 'chart-trend-median-' + branch;
     var trendCheapId = 'chart-trend-cheapest-' + branch;
+    var trendWithCompId = 'chart-trend-withcomp-' + branch;
 
     html += '<div class="chart-row">';
     html += '<div class="chart-card"><h2>Median % Over Time</h2><div style="height:250px"><canvas id="' + trendMedId + '"></canvas></div></div>';
     html += '<div class="chart-card"><h2>% Cheapest Over Time</h2><div style="height:250px"><canvas id="' + trendCheapId + '"></canvas></div></div>';
+    html += '</div>';
+
+    html += '<div class="chart-row">';
+    html += '<div class="chart-card"><h2>Products With Competitor Data Over Time</h2><div style="height:250px"><canvas id="' + trendWithCompId + '"></canvas></div></div>';
     html += '</div>';
 
     // Products over time — switchable between Competitors and Segments
@@ -372,6 +381,11 @@
     html += '<div style="height:280px"><canvas id="' + trendCovId + '"></canvas></div>';
     html += '</div>';
 
+    // Competitor price activity table
+    html += '<div class="card" style="margin-bottom:1.5rem"><h2>Competitor Price Activity</h2>';
+    html += renderCompetitorActivity(analyses, branch);
+    html += '</div>';
+
     // Segment trend table
     html += '<div class="card"><h2>Segment Trend (First \u2192 Last)</h2>';
     html += renderSegmentTrend(first, last);
@@ -381,6 +395,7 @@
 
     createLineChart(trendMedId, dates, medians);
     createLineChart(trendCheapId, dates, pctCheapers);
+    createLineChart(trendWithCompId, dates, withComps);
 
     // Build series data for both modes
     var competitors = BRANCH_CONFIG[branch] ? BRANCH_CONFIG[branch].competitors : [];
@@ -465,6 +480,89 @@
         buildCovChart(btn.dataset.covmode === 'segments' ? segSeries : compSeries);
       });
     });
+  }
+
+  function renderCompetitorActivity(analyses, branch) {
+    var competitors = (BRANCH_CONFIG[branch] || {}).competitors || [];
+    if (analyses.length < 2 || competitors.length === 0) {
+      return '<div class="empty-state">Need at least two files to compute activity.</div>';
+    }
+
+    var pairs = [];
+    for (var i = 0; i < analyses.length - 1; i++) {
+      pairs.push({ prev: analyses[i], next: analyses[i + 1] });
+    }
+
+    function diffPair(prev, next) {
+      var prevMap = prev.productCompPrices || {};
+      var nextMap = next.productCompPrices || {};
+      var out = {};
+      competitors.forEach(function (c) { out[c] = { changes: 0, added: 0 }; });
+      Object.keys(nextMap).forEach(function (code) {
+        var prevEntry = prevMap[code] || {};
+        var nextEntry = nextMap[code] || {};
+        competitors.forEach(function (c) {
+          var pv = prevEntry[c];
+          var nv = nextEntry[c];
+          if (nv !== undefined) {
+            if (pv === undefined) out[c].added++;
+            else if (pv !== nv) out[c].changes++;
+          }
+        });
+      });
+      return out;
+    }
+
+    var perPair = pairs.map(function (p) { return diffPair(p.prev, p.next); });
+
+    function shortLabel(a, b) {
+      function fmt(d) {
+        var parts = (d || '').split('-');
+        return parts.length >= 2 ? parts[0] + '.' + parts[1] : (d || '?');
+      }
+      return fmt(a.date) + '\u2192' + fmt(b.date);
+    }
+
+    var header = '<tr><th>Konkurent</th>';
+    pairs.forEach(function (p) {
+      var lbl = shortLabel(p.prev, p.next);
+      header += '<th>' + lbl + ' zmian</th><th>' + lbl + ' nowe</th>';
+    });
+    header += '<th>\u0141\u0105cznie zmian</th><th>Ocena aktywno\u015Bci</th></tr>';
+
+    var rowsHtml = '';
+    competitors.forEach(function (c) {
+      var total = 0;
+      var cells = '';
+      perPair.forEach(function (pp) {
+        var v = pp[c] || { changes: 0, added: 0 };
+        total += v.changes + v.added;
+        cells += '<td>' + v.changes + '</td><td>' + v.added + '</td>';
+      });
+
+      var avgCoverage = 0, covCount = 0;
+      analyses.forEach(function (a) {
+        if (a.compCoverage && typeof a.compCoverage[c] === 'number') {
+          avgCoverage += a.compCoverage[c];
+          covCount++;
+        }
+      });
+      avgCoverage = covCount > 0 ? (avgCoverage / covCount) : 0;
+      var activityPct = avgCoverage > 0 ? (total / avgCoverage * 100) : 0;
+
+      var rating, ratingClass;
+      if (activityPct >= 20)     { rating = 'Bardzo aktywny'; ratingClass = 'activity-very'; }
+      else if (activityPct >= 5) { rating = 'Aktywny';        ratingClass = 'activity-active'; }
+      else                        { rating = 'Marginalny';     ratingClass = 'activity-marginal'; }
+
+      rowsHtml += '<tr><td>' + escHtml(c) + '</td>' + cells +
+        '<td>' + total + '</td>' +
+        '<td><span class="activity-badge ' + ratingClass + '">' +
+          '<span class="activity-dot"></span>' + rating + '</span></td></tr>';
+    });
+
+    return '<table class="trend-table competitor-activity-table"><thead>' +
+      header + '</thead><tbody>' + rowsHtml + '</tbody></table>';
   }
 
   function renderSegmentTrend(first, last) {
