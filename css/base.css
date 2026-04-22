@@ -469,18 +469,20 @@ a:hover { text-decoration: underline; }
   font-weight: 400;
   color: var(--text3);
 }
-.competitor-activity-table.trend-table thead tr:last-child th {
-  font-size: 0.65rem;
-  padding-top: 0;
-  padding-bottom: 0.35rem;
-  font-weight: 400;
-  letter-spacing: 0.06em;
-}
 .competitor-activity-table .pair-group-start { border-left: 1px solid var(--border); }
 .competitor-activity-table td.activity-name {
   text-align: left;
   color: var(--text);
   font-weight: 500;
+  line-height: 1.2;
+}
+.competitor-activity-table .activity-name-main { color: var(--text); font-weight: 500; }
+.competitor-activity-table .activity-name-note {
+  font-size: 0.7rem;
+  color: var(--text3);
+  font-weight: 400;
+  font-family: var(--font-mono);
+  margin-top: 0.15rem;
 }
 .competitor-activity-table td.activity-total {
   font-weight: 600;

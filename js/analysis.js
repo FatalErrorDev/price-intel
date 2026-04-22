@@ -504,7 +504,7 @@
       return '<div class="empty-state">Need at least two files to compute activity.</div>';
     }
 
-    var recent = analyses.slice(-5);
+    var recent = analyses.slice(-7);
 
     var pairs = [];
     for (var i = 0; i < recent.length - 1; i++) {
@@ -512,6 +512,7 @@
     }
 
     var isSegments = mode === 'segments';
+    var last = recent[recent.length - 1];
 
     // Build the set of row keys (competitor names, or segment names across the recent window)
     var rowKeys;
@@ -525,14 +526,14 @@
       rowKeys = competitors.slice();
     }
 
-    // Per-pair diff: { rowKey -> { changes, added } }
+    // Per-pair diff: { rowKey -> changes count } (price changed between files)
     function diffPair(prev, next) {
       var prevMap = prev.productCompPrices || {};
       var nextMap = next.productCompPrices || {};
       var prevSeg = prev.productSegments || {};
       var nextSeg = next.productSegments || {};
       var out = {};
-      rowKeys.forEach(function (k) { out[k] = { changes: 0, added: 0 }; });
+      rowKeys.forEach(function (k) { out[k] = 0; });
 
       Object.keys(nextMap).forEach(function (code) {
         var prevEntry = prevMap[code] || {};
@@ -541,11 +542,12 @@
         competitors.forEach(function (c) {
           var pv = prevEntry[c];
           var nv = nextEntry[c];
-          if (nv === undefined) return;
-          var bucket = isSegments ? out[seg] : out[c];
-          if (!bucket) { bucket = { changes: 0, added: 0 }; out[isSegments ? seg : c] = bucket; }
-          if (pv === undefined) bucket.added++;
-          else if (pv !== nv) bucket.changes++;
+          if (pv === undefined || nv === undefined) return;
+          if (pv !== nv) {
+            var key = isSegments ? seg : c;
+            if (out[key] === undefined) out[key] = 0;
+            out[key]++;
+          }
         });
       });
       return out;
@@ -561,8 +563,7 @@
       return fmt(a.date) + '\u2192' + fmt(b.date);
     }
 
-    // Denominator for activity %: avg competitor coverage (competitors mode)
-    // or avg segment pricePoints (segments mode) — both represent "tracked product-competitor pairs per file"
+    // Denominator for activity %: avg competitor coverage or avg segment pricePoints across the window
     function avgBase(key) {
       var sum = 0, n = 0;
       recent.forEach(function (a) {
@@ -577,25 +578,40 @@
       return n > 0 ? sum / n : 0;
     }
 
+    // X/Y note: products with this competitor's/segment's data vs total searched, computed on the latest file
+    function noteFor(key) {
+      if (isSegments) {
+        var seg = (last.segments || []).find(function (s) { return s.name === key; });
+        if (!seg) return '0/0';
+        var withData = 0;
+        var pcp = last.productCompPrices || {};
+        var ps = last.productSegments || {};
+        Object.keys(pcp).forEach(function (code) {
+          if (ps[code] === key) withData++;
+        });
+        return withData + '/' + seg.total;
+      }
+      var cov = (last.compCoverage && last.compCoverage[key]) || 0;
+      return cov + '/' + (last.total || 0);
+    }
+
     var firstColLabel = isSegments ? 'Segment' : 'Konkurent';
-    var header1 = '<tr><th rowspan="2">' + firstColLabel + '</th>';
-    var header2 = '<tr>';
-    pairs.forEach(function (p) {
-      header1 += '<th colspan="2" class="pair-group">' + shortLabel(p.prev, p.next) + '</th>';
-      header2 += '<th class="pair-group-start">zmian</th><th>nowe</th>';
+    var header = '<tr><th>' + firstColLabel + '</th>';
+    pairs.forEach(function (p, idx) {
+      var startCls = idx === 0 ? ' class="pair-group-start"' : '';
+      header += '<th' + startCls + '>' + shortLabel(p.prev, p.next) + '</th>';
     });
-    header1 += '<th rowspan="2" class="pair-group-start">\u0141\u0105cznie</th>'
-            + '<th rowspan="2">Ocena aktywno\u015Bci</th>';
-    header2 += '</tr>';
+    header += '<th class="pair-group-start">\u0141\u0105cznie</th>'
+           +  '<th>Ocena aktywno\u015Bci</th></tr>';
 
     var rows = rowKeys.map(function (k) {
       var total = 0;
       var cellHtml = '';
       perPair.forEach(function (pp, idx) {
-        var v = pp[k] || { changes: 0, added: 0 };
-        total += v.changes + v.added;
+        var v = pp[k] || 0;
+        total += v;
         var startCls = idx === 0 ? ' class="pair-group-start"' : '';
-        cellHtml += '<td' + startCls + '>' + v.changes + '</td><td>' + v.added + '</td>';
+        cellHtml += '<td' + startCls + '>' + v + '</td>';
       });
 
       var base = avgBase(k);
@@ -609,6 +625,7 @@
 
       return {
         name: k,
+        note: noteFor(k),
         total: total,
         activityPct: activityPct,
         ratingRank: ratingRank,
@@ -623,7 +640,10 @@
 
     var rowsHtml = '';
     rows.forEach(function (r) {
-      rowsHtml += '<tr><td class="activity-name">' + escHtml(r.name) + '</td>' + r.cellHtml +
+      rowsHtml += '<tr><td class="activity-name">' +
+        '<div class="activity-name-main">' + escHtml(r.name) + '</div>' +
+        '<div class="activity-name-note">' + escHtml(r.note) + '</div>' +
+      '</td>' + r.cellHtml +
         '<td class="pair-group-start activity-total">' + r.total + '</td>' +
         '<td><span class="activity-badge ' + r.ratingClass + '">' +
           '<span class="activity-dot"></span>' + r.rating + '</span></td></tr>';
@@ -631,7 +651,7 @@
 
     return '<div class="activity-table-wrap">' +
       '<table class="trend-table competitor-activity-table"><thead>' +
-      header1 + '</tr>' + header2 + '</thead><tbody>' + rowsHtml + '</tbody></table>' +
+      header + '</thead><tbody>' + rowsHtml + '</tbody></table>' +
       '</div>';
   }
 
