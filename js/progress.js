@@ -94,18 +94,35 @@
     var pct = s.total_steps > 0
       ? Math.round((s.current_step / s.total_steps) * 100) : 0;
 
+    // The scraper now reports aggregate progress (completed EANs / grand total)
+    // across all competitors in one counter: competitor is "*" and the
+    // competitor counts are 0/0. Older payloads sent a real competitor name
+    // with meaningful current/total competitor counts — support both.
+    var aggregate = !s.total_competitors || s.competitor === '*';
+    var label, meta;
+    if (aggregate) {
+      label = 'Scraping';
+      meta = s.current_step + '/' + s.total_steps;
+    } else {
+      label = escHtml(s.competitor || '');
+      meta = s.current_competitor + '/' + s.total_competitors;
+    }
+
     el.innerHTML =
       '<div class="progress-session-header">' +
-        '<span class="progress-competitor-label">' + escHtml(s.competitor || '') +
-        ' <span class="progress-meta">(' + s.current_competitor + '/' + s.total_competitors + ')</span></span>' +
+        '<span class="progress-competitor-label">' + label +
+        ' <span class="progress-meta">(' + meta + ')</span></span>' +
         '<span class="progress-pct">' + pct + '%</span>' +
       '</div>' +
       '<div class="progress-bar-track">' +
         '<div class="progress-bar-fill" style="width:' + pct + '%"></div>' +
       '</div>';
 
-    // Check completion
-    if (s.current_step >= s.total_steps && s.current_competitor >= s.total_competitors) {
+    // Check completion. In aggregate mode the competitor counters are 0/0, so
+    // completion hinges solely on the step counter reaching the total.
+    var done = s.total_steps > 0 && s.current_step >= s.total_steps &&
+      (aggregate || s.current_competitor >= s.total_competitors);
+    if (done) {
       el.classList.add('complete');
       setTimeout(function () { removeSession(sessionId); }, 5000);
     }
